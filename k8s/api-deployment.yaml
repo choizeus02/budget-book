@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: budget-book-api
+  namespace: budget-book
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: budget-book-api
+  template:
+    metadata:
+      labels:
+        app: budget-book-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/choizeus02/budget-book-api:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: budget-book-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: budget-book-api
+  namespace: budget-book
+spec:
+  selector:
+    app: budget-book-api
+  ports:
+    - port: 8000
+      targetPort: 8000

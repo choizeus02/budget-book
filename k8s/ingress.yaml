@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: budget-book-ingress
+  namespace: budget-book
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /budget
+            pathType: Prefix
+            backend:
+              service:
+                name: budget-book-frontend
+                port:
+                  number: 80
