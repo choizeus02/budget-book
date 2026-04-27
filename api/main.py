@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI  # noqa
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import init_db
