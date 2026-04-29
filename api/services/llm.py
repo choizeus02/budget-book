@@ -54,7 +54,7 @@ async def classify_category(description: str, db: AsyncSession) -> str | None:
 
 async def _call_ollama(description: str) -> str | None:
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
                 f"{settings.ollama_url}/api/chat",
                 json={
@@ -65,6 +65,7 @@ async def _call_ollama(description: str) -> str | None:
                     ],
                     "stream": False,
                     "format": "json",
+                    "think": False,
                 },
             )
             resp.raise_for_status()
