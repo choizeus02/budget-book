@@ -10,6 +10,13 @@ spec:
   rules:
     - http:
         paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: budget-book-api
+                port:
+                  number: 8000
           - path: /budget
             pathType: Prefix
             backend:
