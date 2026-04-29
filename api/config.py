@@ -8,8 +8,7 @@ class Settings(BaseSettings):
     db_user: str = "budget_book"
     db_password: str = ""
 
-    ollama_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen3:4b"
+    anthropic_api_key: str = ""
 
     @property
     def database_url(self) -> str:
