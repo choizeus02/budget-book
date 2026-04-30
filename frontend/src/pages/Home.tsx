@@ -83,6 +83,7 @@ export default function Home() {
                 </p>
                 <CategoryBadge
                   category={tx.category}
+                  subcategory={tx.subcategory}
                   confirmed={tx.category_confirmed}
                 />
               </div>
