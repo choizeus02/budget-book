@@ -9,20 +9,22 @@ const tabs = [
 
 export default function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 flex safe-area-inset-bottom"
-         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 flex"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       {tabs.map((tab) => (
         <NavLink
           key={tab.to}
           to={tab.to}
           end={tab.to === "/"}
           className={({ isActive }) =>
-            `flex-1 flex flex-col items-center py-2 gap-0.5 text-xs transition-colors ${
-              isActive ? "text-indigo-400" : "text-slate-400"
+            `flex-1 flex flex-col items-center py-1.5 gap-0.5 text-[11px] transition-colors ${
+              isActive ? "text-indigo-400" : "text-slate-500"
             }`
           }
         >
-          <span className="text-lg">{tab.icon}</span>
+          <span className="text-base leading-5">{tab.icon}</span>
           <span>{tab.label}</span>
         </NavLink>
       ))}
