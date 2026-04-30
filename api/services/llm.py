@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import re
 
 import anthropic
 from sqlalchemy import select
@@ -64,10 +65,14 @@ async def _call_haiku(description: str) -> str | None:
             logger.warning(f"Haiku 응답 타입 이상: {block.type!r}")
             return None
         raw = block.text.strip()
-        logger.warning(f"Haiku raw response: {raw!r}")
         if not raw:
             return None
-        data = json.loads(raw)
+        # 마크다운 코드블록 제거 후 JSON 객체 추출
+        match = re.search(r'\{.*?\}', raw, re.DOTALL)
+        if not match:
+            logger.warning(f"Haiku 응답에서 JSON 못 찾음: {raw!r}")
+            return None
+        data = json.loads(match.group())
         category = data.get("category", "기타")
         if category not in CATEGORIES:
             return "기타"
