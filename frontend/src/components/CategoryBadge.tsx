@@ -2,12 +2,15 @@ import { CATEGORY_ICONS } from "../api/types";
 
 interface Props {
   category: string | null;
+  subcategory?: string | null;
   confirmed?: boolean;
   onClick?: () => void;
 }
 
-export default function CategoryBadge({ category, confirmed, onClick }: Props) {
-  const label = category ?? "분류 중...";
+export default function CategoryBadge({ category, subcategory, confirmed, onClick }: Props) {
+  const label = category
+    ? (subcategory ? `${category} · ${subcategory}` : category)
+    : "분류 중...";
   const icon = category ? (CATEGORY_ICONS[category] ?? "📌") : "⏳";
 
   return (

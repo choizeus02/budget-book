@@ -48,6 +48,7 @@ class TransactionCreate(BaseModel):
 class TransactionUpdate(BaseModel):
     description: Optional[str] = None
     category: Optional[str] = None
+    subcategory: Optional[str] = None
     category_confirmed: Optional[bool] = None
     amount: Optional[float] = None
     date: Optional[datetime] = None
@@ -60,6 +61,7 @@ class TransactionResponse(BaseModel):
     amount: float
     description: str
     category: Optional[str]
+    subcategory: Optional[str]
     category_confirmed: bool
     type: TransactionType
     date: datetime

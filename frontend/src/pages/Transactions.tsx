@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import { CATEGORIES } from "../api/types";
+import { CATEGORY_ICONS, CATEGORY_MAP } from "../api/types";
 import type { Transaction } from "../api/types";
 import CategoryBadge from "../components/CategoryBadge";
 
@@ -36,9 +36,10 @@ export default function Transactions() {
     api.transactions.list(year, month).then(setTransactions);
   }, [year, month]);
 
-  async function handleCategoryChange(id: number, category: string) {
+  async function handleCategoryChange(id: number, category: string, subcategory: string) {
     const updated = await api.transactions.update(id, {
       category,
+      subcategory,
       category_confirmed: true,
     });
     setTransactions((prev) =>
@@ -93,6 +94,7 @@ export default function Transactions() {
                 <div className="mt-1 flex items-center gap-2">
                   <CategoryBadge
                     category={tx.category}
+                    subcategory={tx.subcategory}
                     confirmed={tx.category_confirmed}
                     onClick={() => setEditingCategory(tx.id === editingCategory ? null : tx.id)}
                   />
@@ -106,15 +108,22 @@ export default function Transactions() {
 
                 {/* 카테고리 선택 패널 */}
                 {editingCategory === tx.id && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {CATEGORIES.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => handleCategoryChange(tx.id, cat)}
-                        className="px-2 py-1 rounded-lg bg-slate-700 text-slate-300 text-xs active:bg-indigo-600"
-                      >
-                        {cat}
-                      </button>
+                  <div className="mt-2 flex flex-col gap-2">
+                    {Object.entries(CATEGORY_MAP).map(([cat, subs]) => (
+                      <div key={cat} className="flex flex-wrap gap-1 items-center">
+                        <span className="text-slate-500 text-xs w-4 text-center">
+                          {CATEGORY_ICONS[cat] ?? "📌"}
+                        </span>
+                        {subs.map((sub) => (
+                          <button
+                            key={sub}
+                            onClick={() => handleCategoryChange(tx.id, cat, sub)}
+                            className="px-2 py-0.5 rounded-lg bg-slate-700 text-slate-300 text-xs active:bg-indigo-600"
+                          >
+                            {sub}
+                          </button>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 )}

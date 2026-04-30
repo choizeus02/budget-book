@@ -20,8 +20,9 @@ async def _update_category(transaction_id: int, description: str, db_session):
     async with AsyncSessionLocal() as db:
         tx = await db.get(Transaction, transaction_id)
         if tx and not tx.category_confirmed:
-            category = await classify_category(description, db)
+            category, subcategory = await classify_category(description, db)
             tx.category = category
+            tx.subcategory = subcategory
             await db.commit()
 
 

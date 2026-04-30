@@ -22,10 +22,18 @@ class TransactionType(str, enum.Enum):
     expense = "expense"
 
 
-CATEGORIES = [
-    "식비", "카페/음료", "교통", "쇼핑", "문화/여가",
-    "의료", "통신", "구독", "주거", "교육", "기타",
-]
+CATEGORY_MAP: dict[str, list[str]] = {
+    "식비":     ["식당", "카페", "마트", "배달", "식단"],
+    "교통":     ["대중교통", "택시", "주유", "주차"],
+    "쇼핑":     ["의류", "생활용품", "전자기기"],
+    "문화/여가": ["영화", "공연", "여행", "게임", "인앱결제"],
+    "의료":     ["병원", "약국"],
+    "건강":     ["운동", "영양제"],
+    "통신/구독": ["통신비", "OTT", "소프트웨어"],
+    "주거":     ["월세/관리비", "가전", "인테리어"],
+    "교육":     ["학원", "도서", "온라인강의", "자기개발"],
+    "기타":     ["기타"],
+}
 
 
 class Account(Base):
@@ -50,6 +58,7 @@ class Transaction(Base):
     amount: Mapped[float] = mapped_column(Float, nullable=False)  # 양수=수입, 음수=지출
     description: Mapped[str] = mapped_column(String(500), default="")
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    subcategory: Mapped[str | None] = mapped_column(String(50), nullable=True)
     category_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     type: Mapped[TransactionType] = mapped_column(Enum(TransactionType), nullable=False)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -73,5 +82,6 @@ class CategoryCache(Base):
 
     description_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     category: Mapped[str] = mapped_column(String(50), nullable=False)
+    subcategory: Mapped[str | None] = mapped_column(String(50), nullable=True)
     count: Mapped[int] = mapped_column(Integer, default=1)
     last_used: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
