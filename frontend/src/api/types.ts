@@ -47,6 +47,20 @@ export interface CategoryStat {
   budget: number | null;
 }
 
+export interface SubcategoryStat {
+  subcategory: string;
+  total: number;
+  count: number;
+}
+
+export interface CategoryStatDetail {
+  category: string;
+  total: number;
+  count: number;
+  budget: number | null;
+  subcategories: SubcategoryStat[];
+}
+
 export const CATEGORY_MAP: Record<string, string[]> = {
   "식비":     ["식당", "카페", "마트", "배달", "식단"],
   "교통":     ["대중교통", "택시", "주유", "주차"],

@@ -7,7 +7,7 @@ import {
   Tooltip,
 } from "recharts";
 import { api } from "../api/client";
-import type { CategoryStat, MonthlySummary } from "../api/types";
+import type { CategoryStatDetail, MonthlySummary } from "../api/types";
 import { CATEGORY_ICONS } from "../api/types";
 
 const COLORS = [
@@ -25,15 +25,17 @@ export default function Stats() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
-  const [categories, setCategories] = useState<CategoryStat[]>([]);
+  const [categories, setCategories] = useState<CategoryStatDetail[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       api.stats.monthly(year, month),
-      api.stats.byCategory(year, month),
+      api.stats.byCategoryDetail(year, month),
     ]).then(([s, c]) => {
       setSummary(s);
       setCategories(c);
+      setExpanded(null);
     });
   }, [year, month]);
 
@@ -107,39 +109,70 @@ export default function Stats() {
         </div>
       )}
 
-      {/* 카테고리별 목록 */}
+      {/* 카테고리별 아코디언 */}
       <div className="flex flex-col gap-2 px-4">
         {categories.map((cat, idx) => {
           const percent = summary?.total_expense
             ? (cat.total / summary.total_expense) * 100
             : 0;
           const budgetUsed = cat.budget ? (cat.total / cat.budget) * 100 : null;
+          const isOpen = expanded === cat.category;
 
           return (
-            <div key={cat.category} className="bg-slate-800 rounded-xl px-4 py-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span>{CATEGORY_ICONS[cat.category] ?? "📌"}</span>
-                <span className="text-white text-sm font-medium flex-1">{cat.category}</span>
-                <span className="text-white text-sm font-semibold">{fmt(cat.total)}원</span>
-              </div>
-              {/* 진행 바 */}
-              <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(percent, 100)}%`,
-                    backgroundColor: COLORS[idx % COLORS.length],
-                  }}
-                />
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-xs text-slate-500">{percent.toFixed(1)}%</span>
-                {cat.budget && (
-                  <span className={`text-xs ${budgetUsed! > 100 ? "text-red-400" : "text-slate-500"}`}>
-                    예산 {fmt(cat.budget)}원 ({budgetUsed!.toFixed(0)}%)
-                  </span>
-                )}
-              </div>
+            <div key={cat.category} className="bg-slate-800 rounded-xl overflow-hidden">
+              {/* 대분류 헤더 */}
+              <button
+                className="w-full px-4 py-3 text-left active:bg-slate-700 transition-colors"
+                onClick={() => setExpanded(isOpen ? null : cat.category)}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span>{CATEGORY_ICONS[cat.category] ?? "📌"}</span>
+                  <span className="text-white text-sm font-medium flex-1">{cat.category}</span>
+                  <span className="text-white text-sm font-semibold">{fmt(cat.total)}원</span>
+                  <span className="text-slate-500 text-xs ml-1">{isOpen ? "▲" : "▼"}</span>
+                </div>
+                <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(percent, 100)}%`,
+                      backgroundColor: COLORS[idx % COLORS.length],
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-xs text-slate-500">{percent.toFixed(1)}%</span>
+                  {cat.budget && (
+                    <span className={`text-xs ${budgetUsed! > 100 ? "text-red-400" : "text-slate-500"}`}>
+                      예산 {fmt(cat.budget)}원 ({budgetUsed!.toFixed(0)}%)
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {/* 중분류 펼침 */}
+              {isOpen && (
+                <div className="border-t border-slate-700 px-4 py-2 flex flex-col gap-2">
+                  {cat.subcategories.map((sub) => {
+                    const subPercent = cat.total > 0 ? (sub.total / cat.total) * 100 : 0;
+                    return (
+                      <div key={sub.subcategory} className="flex items-center gap-2">
+                        <span className="text-slate-400 text-xs w-16 shrink-0">{sub.subcategory}</span>
+                        <div className="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.min(subPercent, 100)}%`,
+                              backgroundColor: COLORS[idx % COLORS.length] + "99",
+                            }}
+                          />
+                        </div>
+                        <span className="text-slate-300 text-xs shrink-0">{fmt(sub.total)}원</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}

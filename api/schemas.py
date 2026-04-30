@@ -102,3 +102,17 @@ class CategoryStat(BaseModel):
     total: float
     count: int
     budget: Optional[float] = None
+
+
+class SubcategoryStat(BaseModel):
+    subcategory: str
+    total: float
+    count: int
+
+
+class CategoryStatDetail(BaseModel):
+    category: str
+    total: float
+    count: int
+    budget: Optional[float] = None
+    subcategories: list[SubcategoryStat]

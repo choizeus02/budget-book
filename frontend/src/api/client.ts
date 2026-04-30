@@ -2,6 +2,7 @@ import type {
   Account,
   Budget,
   CategoryStat,
+  CategoryStatDetail,
   MonthlySummary,
   Transaction,
 } from "./types";
@@ -76,5 +77,7 @@ export const api = {
       request<MonthlySummary>(`/stats/monthly?year=${year}&month=${month}`),
     byCategory: (year: number, month: number) =>
       request<CategoryStat[]>(`/stats/by-category?year=${year}&month=${month}`),
+    byCategoryDetail: (year: number, month: number) =>
+      request<CategoryStatDetail[]>(`/stats/by-category-detail?year=${year}&month=${month}`),
   },
 };
