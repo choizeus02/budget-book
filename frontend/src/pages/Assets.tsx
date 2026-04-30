@@ -64,7 +64,7 @@ export default function Assets() {
     .reduce((s, a) => s + a.balance, 0);
 
   return (
-    <div className="flex flex-col pb-24 bg-slate-950 min-h-svh">
+    <div className="flex flex-col pb-20 bg-slate-950 min-h-svh">
       <div className="px-5 pt-safe pt-6" style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)" }}>
         <h1 className="text-xl font-bold text-white mb-2">자산</h1>
       </div>

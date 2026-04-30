@@ -26,7 +26,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex flex-col pb-24 bg-slate-950 min-h-svh">
+    <div className="flex flex-col pb-20 bg-slate-950 min-h-svh">
       {/* 헤더 */}
       <div className="px-5 pt-safe pt-6 pb-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)" }}>
         <p className="text-slate-400 text-sm">

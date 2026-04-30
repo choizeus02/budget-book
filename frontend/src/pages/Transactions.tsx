@@ -69,7 +69,7 @@ export default function Transactions() {
   }
 
   return (
-    <div className="flex flex-col pb-24 bg-slate-950 min-h-svh">
+    <div className="flex flex-col pb-20 bg-slate-950 min-h-svh">
       {/* 헤더 */}
       <div className="px-5 pt-safe pt-6" style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)" }}>
         <h1 className="text-xl font-bold text-white mb-4">거래 내역</h1>
