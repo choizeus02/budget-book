@@ -11,7 +11,7 @@ export default function BottomNav() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 flex"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      style={{ paddingBottom: "min(env(safe-area-inset-bottom), 20px)" }}
     >
       {tabs.map((tab) => (
         <NavLink
