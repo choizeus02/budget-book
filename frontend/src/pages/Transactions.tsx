@@ -9,12 +9,28 @@ function fmt(n: number) {
   return Math.abs(n).toLocaleString("ko-KR");
 }
 
+function fmtDatetime(dateStr: string) {
+  const d = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${mm}/${dd} ${hh}:${min}`;
+}
+
+function toDatetimeLocal(dateStr: string) {
+  const d = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+}
+
 export default function Transactions() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [editingCategory, setEditingCategory] = useState<number | null>(null);
+  const [editingDate, setEditingDate] = useState<number | null>(null);
 
   useEffect(() => {
     api.transactions.list(year, month).then(setTransactions);
@@ -29,6 +45,12 @@ export default function Transactions() {
       prev.map((t) => (t.id === id ? updated : t))
     );
     setEditingCategory(null);
+  }
+
+  async function handleDateChange(id: number, date: string) {
+    const updated = await api.transactions.update(id, { date });
+    setTransactions((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    setEditingDate(null);
   }
 
   async function handleDelete(id: number) {
@@ -74,7 +96,12 @@ export default function Transactions() {
                     confirmed={tx.category_confirmed}
                     onClick={() => setEditingCategory(tx.id === editingCategory ? null : tx.id)}
                   />
-                  <span className="text-slate-600 text-xs">{tx.date}</span>
+                  <button
+                    onClick={() => setEditingDate(tx.id === editingDate ? null : tx.id)}
+                    className="text-slate-500 text-xs"
+                  >
+                    {fmtDatetime(tx.date)}
+                  </button>
                 </div>
 
                 {/* 카테고리 선택 패널 */}
@@ -89,6 +116,18 @@ export default function Transactions() {
                         {cat}
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* 날짜 수정 패널 */}
+                {editingDate === tx.id && (
+                  <div className="mt-2 flex gap-2 items-center">
+                    <input
+                      type="datetime-local"
+                      defaultValue={toDatetimeLocal(tx.date)}
+                      onChange={(e) => handleDateChange(tx.id, e.target.value)}
+                      className="bg-slate-700 text-white rounded-lg px-2 py-1 text-xs outline-none"
+                    />
                   </div>
                 )}
               </div>

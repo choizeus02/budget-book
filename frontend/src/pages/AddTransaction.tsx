@@ -5,11 +5,18 @@ import QuickInput from "../components/QuickInput";
 
 type TxType = "expense" | "income";
 
+function localDatetimeValue() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+}
+
 export default function AddTransaction() {
   const navigate = useNavigate();
   const [type, setType] = useState<TxType>("expense");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [date, setDate] = useState(localDatetimeValue());
   const [loading, setLoading] = useState(false);
 
   async function handleSave() {
@@ -18,12 +25,11 @@ export default function AddTransaction() {
 
     setLoading(true);
     try {
-      const today = new Date().toISOString().slice(0, 10);
       await api.transactions.create({
         amount: num,
         description,
         type,
-        date: today,
+        date,
       });
       navigate("/", { replace: true });
     } finally {
@@ -69,6 +75,17 @@ export default function AddTransaction() {
 
         {/* 금액 입력 패드 */}
         <QuickInput value={amount} onChange={setAmount} />
+
+        {/* 날짜/시간 입력 */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs text-slate-400 font-medium">거래 일시</label>
+          <input
+            type="datetime-local"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="bg-slate-800 text-white rounded-xl px-4 py-3 text-base outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
 
         {/* 메모 입력 */}
         <div className="flex flex-col gap-2">

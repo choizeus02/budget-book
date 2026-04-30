@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
@@ -42,13 +42,7 @@ class TransactionCreate(BaseModel):
     amount: float
     description: str = ""
     type: TransactionType
-    date: date
-
-    @field_validator("amount")
-    @classmethod
-    def amount_sign(cls, v, info):
-        # expense는 항상 음수로 저장
-        return v
+    date: Optional[datetime] = None
 
 
 class TransactionUpdate(BaseModel):
@@ -56,7 +50,7 @@ class TransactionUpdate(BaseModel):
     category: Optional[str] = None
     category_confirmed: Optional[bool] = None
     amount: Optional[float] = None
-    date: Optional[date] = None
+    date: Optional[datetime] = None
     account_id: Optional[int] = None
 
 
@@ -68,8 +62,9 @@ class TransactionResponse(BaseModel):
     category: Optional[str]
     category_confirmed: bool
     type: TransactionType
-    date: date
+    date: datetime
     created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 

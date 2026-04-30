@@ -1,9 +1,9 @@
 import enum
-from datetime import datetime, date
+from datetime import datetime
 
 from sqlalchemy import (
-    BigInteger, Boolean, Date, DateTime, Enum, Float,
-    ForeignKey, Integer, String, Text, func,
+    BigInteger, Boolean, DateTime, Enum, Float,
+    ForeignKey, Integer, String, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -52,8 +52,9 @@ class Transaction(Base):
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     category_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     type: Mapped[TransactionType] = mapped_column(Enum(TransactionType), nullable=False)
-    date: Mapped[date] = mapped_column(Date, nullable=False)
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     account: Mapped["Account | None"] = relationship(back_populates="transactions")
 

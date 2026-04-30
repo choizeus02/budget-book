@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -40,7 +40,7 @@ async def create_transaction(
         amount=amount,
         description=body.description,
         type=body.type,
-        date=body.date,
+        date=body.date or datetime.now(),
     )
     db.add(tx)
     await db.flush()
