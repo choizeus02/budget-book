@@ -56,15 +56,18 @@ async def _call_haiku(description: str) -> str | None:
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": description}],
         )
-        logger.info(f"Haiku response: stop_reason={message.stop_reason}, content={message.content}")
         if not message.content:
             logger.warning("Haiku 응답에 content가 없음")
             return None
         block = message.content[0]
-        if block.type != "text" or not block.text.strip():
-            logger.warning(f"Haiku 응답 타입/내용 이상: type={block.type!r}, text={block.text!r}")
+        if block.type != "text":
+            logger.warning(f"Haiku 응답 타입 이상: {block.type!r}")
             return None
-        data = json.loads(block.text)
+        raw = block.text.strip()
+        logger.warning(f"Haiku raw response: {raw!r}")
+        if not raw:
+            return None
+        data = json.loads(raw)
         category = data.get("category", "기타")
         if category not in CATEGORIES:
             return "기타"
