@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/choizeus02/budget-book-frontend:ae07c5a53247a269185607d2549a6f5cb3ec7055
+          image: ghcr.io/choizeus02/budget-book-frontend:fe87559e4a92912391c84c6dfb85ed7a21622390
           ports:
             - containerPort: 80
           resources:
