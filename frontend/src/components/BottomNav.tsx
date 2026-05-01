@@ -7,9 +7,14 @@ const tabs = [
   { to: "/assets", label: "자산", icon: "💰" },
 ];
 
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+
 export default function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 flex pb-2">
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 flex"
+      style={{ paddingBottom: isStandalone ? "env(safe-area-inset-bottom)" : "4px" }}
+    >
       {tabs.map((tab) => (
         <NavLink
           key={tab.to}
