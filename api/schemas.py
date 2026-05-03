@@ -114,10 +114,27 @@ class InstallmentResponse(BaseModel):
 
 # --- Category ---
 
+class SubcategoryItem(BaseModel):
+    id: int
+    name: str
+
+
 class CategoryGroup(BaseModel):
+    id: int
     name: str
     icon: str
-    subcategories: list[str]
+    subcategories: list[SubcategoryItem]
+
+
+class CategoryCreate(BaseModel):
+    name: str
+    icon: str = "📌"
+    parent_id: Optional[int] = None
+
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    icon: Optional[str] = None
 
 
 # --- Budget ---

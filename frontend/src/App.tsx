@@ -2,7 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import BottomNav from "./components/BottomNav";
 import { CategoriesProvider } from "./contexts/CategoriesContext";
 import AddTransaction from "./pages/AddTransaction";
-import Assets from "./pages/Assets";
+import Settings from "./pages/Settings";
 import Home from "./pages/Home";
 import Installments from "./pages/Installments";
 import Stats from "./pages/Stats";
@@ -26,7 +26,7 @@ export default function App() {
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/stats" element={<Stats />} />
                 <Route path="/installments" element={<Installments />} />
-                <Route path="/assets" element={<Assets />} />
+                <Route path="/settings" element={<Settings />} />
               </Routes>
               <BottomNav />
             </>

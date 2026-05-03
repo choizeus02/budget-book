@@ -5,7 +5,7 @@ const tabs = [
   { to: "/transactions", label: "내역", icon: "📋" },
   { to: "/stats", label: "통계", icon: "📊" },
   { to: "/installments", label: "할부", icon: "💳" },
-  { to: "/assets", label: "자산", icon: "💰" },
+  { to: "/settings", label: "설정", icon: "⚙️" },
 ];
 
 const isStandalone = window.matchMedia("(display-mode: standalone)").matches;

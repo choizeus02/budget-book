@@ -76,8 +76,14 @@ export interface CategoryStatDetail {
   subcategories: SubcategoryStat[];
 }
 
+export interface SubcategoryItem {
+  id: number;
+  name: string;
+}
+
 export interface CategoryGroup {
+  id: number;
   name: string;
   icon: string;
-  subcategories: string[];
+  subcategories: SubcategoryItem[];
 }

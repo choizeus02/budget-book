@@ -6,6 +6,7 @@ import type {
   CategoryStatDetail,
   Installment,
   MonthlySummary,
+  SubcategoryItem,
   Transaction,
 } from "./types";
 
@@ -85,6 +86,12 @@ export const api = {
 
   categories: {
     list: () => request<CategoryGroup[]>("/categories"),
+    create: (body: { name: string; icon: string; parent_id?: number | null }) =>
+      request<CategoryGroup | SubcategoryItem>("/categories", { method: "POST", body: JSON.stringify(body) }),
+    update: (id: number, body: { name?: string; icon?: string }) =>
+      request<SubcategoryItem>(`/categories/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    delete: (id: number) =>
+      request<void>(`/categories/${id}`, { method: "DELETE" }),
   },
 
   stats: {
