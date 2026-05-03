@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/choizeus02/budget-book-api:a0948bba5f09fbafb00f6352710aabba37e42cd7
+          image: ghcr.io/choizeus02/budget-book-api:d8b6597b4707a033ef1b20e87fd83f651525bb61
           ports:
             - containerPort: 8000
           envFrom:
