@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI  # noqa
@@ -5,6 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import init_db
 from routers import accounts, budgets, stats, transactions
+
+logging.getLogger("uvicorn.access").addFilter(
+    type("HealthFilter", (logging.Filter,), {
+        "filter": lambda self, r: "/api/health" not in r.getMessage()
+    })()
+)
 
 
 @asynccontextmanager
