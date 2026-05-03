@@ -13,10 +13,13 @@ router = APIRouter(prefix="/installments", tags=["installments"])
 
 
 def _monthly_payment(total_amount: float, total_months: int, annual_rate: Optional[float]) -> float:
+    """일반 월납부액 (100원 단위 내림). 마지막 달 금액은 _generate_transactions에서 별도 계산."""
     if not annual_rate:
-        return total_amount / total_months
-    r = annual_rate / 12 / 100
-    return total_amount * r * (1 + r) ** total_months / ((1 + r) ** total_months - 1)
+        raw = total_amount / total_months
+    else:
+        r = annual_rate / 12 / 100
+        raw = total_amount * r * (1 + r) ** total_months / ((1 + r) ** total_months - 1)
+    return (raw // 100) * 100  # 카드사 방식: 100원 단위 내림
 
 
 def _make_response(inst: Installment) -> InstallmentResponse:
@@ -28,14 +31,26 @@ def _make_response(inst: Installment) -> InstallmentResponse:
 
 
 def _generate_transactions(inst: Installment) -> list[Transaction]:
-    monthly = round(_monthly_payment(inst.total_amount, inst.total_months, inst.annual_interest_rate))
+    n = inst.total_months
+    monthly = int(_monthly_payment(inst.total_amount, inst.total_months, inst.annual_interest_rate))
+
+    # 마지막 달 = 전체에서 (n-1)달치 뺀 나머지
+    if not inst.annual_interest_rate:
+        last = int(inst.total_amount) - (n - 1) * monthly
+    else:
+        r = inst.annual_interest_rate / 12 / 100
+        total_with_interest = inst.total_amount * r * (1 + r) ** n / ((1 + r) ** n - 1) * n
+        last = round(total_with_interest) - (n - 1) * monthly
+
+    amounts = [monthly] * (n - 1) + [last]
+
     txs = []
     year, month = inst.start_year, inst.start_month
-    for i in range(inst.total_months):
+    for i, amount in enumerate(amounts):
         txs.append(Transaction(
             installment_id=inst.id,
-            amount=-monthly,
-            description=f"{inst.name} ({i + 1}/{inst.total_months})",
+            amount=-amount,
+            description=f"{inst.name} ({i + 1}/{n})",
             type=TransactionType.expense,
             date=datetime(year, month, 1),
             category=inst.category,

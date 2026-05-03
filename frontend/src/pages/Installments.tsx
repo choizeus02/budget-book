@@ -8,9 +8,10 @@ function fmt(n: number) {
 }
 
 function calcMonthly(total: number, months: number, rate: number | null): number {
-  if (!rate) return Math.round(total / months);
-  const r = rate / 12 / 100;
-  return Math.round(total * r * (1 + r) ** months / ((1 + r) ** months - 1));
+  const raw = !rate
+    ? total / months
+    : (() => { const r = rate / 12 / 100; return total * r * (1 + r) ** months / ((1 + r) ** months - 1); })();
+  return Math.floor(raw / 100) * 100;  // 100원 단위 내림
 }
 
 function getProgress(inst: Installment) {
