@@ -60,12 +60,14 @@ class Transaction(Base):
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     subcategory: Mapped[str | None] = mapped_column(String(50), nullable=True)
     category_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    installment_id: Mapped[int | None] = mapped_column(ForeignKey("installments.id", ondelete="CASCADE"), nullable=True)
     type: Mapped[TransactionType] = mapped_column(Enum(TransactionType), nullable=False)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     account: Mapped["Account | None"] = relationship(back_populates="transactions")
+    installment: Mapped["Installment | None"] = relationship(back_populates="transactions")
 
 
 class Budget(Base):
@@ -75,6 +77,25 @@ class Budget(Base):
     category: Mapped[str] = mapped_column(String(50), nullable=False)
     monthly_amount: Mapped[float] = mapped_column(Float, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class Installment(Base):
+    __tablename__ = "installments"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    total_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    total_months: Mapped[int] = mapped_column(Integer, nullable=False)
+    annual_interest_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    start_year: Mapped[int] = mapped_column(Integer, nullable=False)
+    start_month: Mapped[int] = mapped_column(Integer, nullable=False)
+    category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    subcategory: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="installment", cascade="all, delete-orphan"
+    )
 
 
 class CategoryCache(Base):

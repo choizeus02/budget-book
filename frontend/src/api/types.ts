@@ -14,6 +14,7 @@ export interface Account {
 export interface Transaction {
   id: number;
   account_id: number | null;
+  installment_id: number | null;
   amount: number;
   description: string;
   category: string | null;
@@ -23,6 +24,20 @@ export interface Transaction {
   date: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface Installment {
+  id: number;
+  name: string;
+  total_amount: number;
+  total_months: number;
+  annual_interest_rate: number | null;
+  start_year: number;
+  start_month: number;
+  category: string | null;
+  subcategory: string | null;
+  monthly_amount: number;
+  created_at: string;
 }
 
 export interface Budget {

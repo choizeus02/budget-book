@@ -3,6 +3,7 @@ import type {
   Budget,
   CategoryStat,
   CategoryStatDetail,
+  Installment,
   MonthlySummary,
   Transaction,
 } from "./types";
@@ -70,6 +71,15 @@ export const api = {
       request<Budget>("/budgets", { method: "POST", body: JSON.stringify(body) }),
     delete: (id: number) =>
       request<void>(`/budgets/${id}`, { method: "DELETE" }),
+  },
+
+  installments: {
+    list: () => request<Installment[]>("/installments"),
+    create: (body: Omit<Installment, "id" | "monthly_amount" | "created_at">) =>
+      request<Installment>("/installments", { method: "POST", body: JSON.stringify(body) }),
+    update: (id: number, body: Partial<Omit<Installment, "id" | "monthly_amount" | "created_at">>) =>
+      request<Installment>(`/installments/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    delete: (id: number) => request<void>(`/installments/${id}`, { method: "DELETE" }),
   },
 
   stats: {

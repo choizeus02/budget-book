@@ -58,6 +58,7 @@ class TransactionUpdate(BaseModel):
 class TransactionResponse(BaseModel):
     id: int
     account_id: Optional[int]
+    installment_id: Optional[int]
     amount: float
     description: str
     category: Optional[str]
@@ -67,6 +68,46 @@ class TransactionResponse(BaseModel):
     date: datetime
     created_at: datetime
     updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# --- Installment ---
+
+class InstallmentCreate(BaseModel):
+    name: str
+    total_amount: float
+    total_months: int
+    annual_interest_rate: Optional[float] = None
+    start_year: int
+    start_month: int
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+
+
+class InstallmentUpdate(BaseModel):
+    name: Optional[str] = None
+    total_amount: Optional[float] = None
+    total_months: Optional[int] = None
+    annual_interest_rate: Optional[float] = None
+    start_year: Optional[int] = None
+    start_month: Optional[int] = None
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+
+
+class InstallmentResponse(BaseModel):
+    id: int
+    name: str
+    total_amount: float
+    total_months: int
+    annual_interest_rate: Optional[float]
+    start_year: int
+    start_month: int
+    category: Optional[str]
+    subcategory: Optional[str]
+    monthly_amount: float
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 
