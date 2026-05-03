@@ -22,18 +22,14 @@ class TransactionType(str, enum.Enum):
     expense = "expense"
 
 
-CATEGORY_MAP: dict[str, list[str]] = {
-    "식비":     ["식당", "술", "카페", "마트", "배달", "식단"],
-    "교통":     ["대중교통", "택시", "주유", "주차"],
-    "쇼핑":     ["의류", "생활용품", "전자기기"],
-    "문화/여가": ["영화/공연", "여행", "게임", "인앱결제", "도서"],
-    "의료":     ["병원", "약국"],
-    "건강":     ["운동", "영양제", "운동용품"],
-    "통신/구독": ["통신비", "소프트웨어", "구독"],
-    "주거":     ["월세/관리비", "가전", "인테리어"],
-    "교육":     ["학원", "서적", "온라인강의"],
-    "기타":     ["기타",'회비'],
-}
+class Category(Base):
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    icon: Mapped[str] = mapped_column(String(10), nullable=False, default="📌")
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class Account(Base):

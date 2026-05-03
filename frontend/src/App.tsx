@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import BottomNav from "./components/BottomNav";
+import { CategoriesProvider } from "./contexts/CategoriesContext";
 import AddTransaction from "./pages/AddTransaction";
 import Assets from "./pages/Assets";
 import Home from "./pages/Home";
@@ -9,6 +10,7 @@ import Transactions from "./pages/Transactions";
 
 export default function App() {
   return (
+    <CategoriesProvider>
     <BrowserRouter basename="/budget">
       <Routes>
         {/* 풀스크린 (BottomNav 없음) */}
@@ -32,6 +34,7 @@ export default function App() {
         />
       </Routes>
     </BrowserRouter>
+    </CategoriesProvider>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import { CATEGORY_ICONS, CATEGORY_MAP } from "../api/types";
 import type { Installment } from "../api/types";
+import { useCategories } from "../contexts/CategoriesContext";
 
 function fmt(n: number) {
   return Math.abs(n).toLocaleString("ko-KR");
@@ -39,6 +39,7 @@ const EMPTY_FORM = {
 };
 
 export default function Installments() {
+  const { categoryMap, iconOf } = useCategories();
   const [list, setList] = useState<Installment[]>([]);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -208,14 +209,14 @@ export default function Installments() {
               className="bg-slate-700 text-left text-sm rounded-xl px-3 py-2 text-white"
             >
               {form.category
-                ? `${CATEGORY_ICONS[form.category] ?? "📌"} ${form.category}${form.subcategory ? ` · ${form.subcategory}` : ""}`
+                ? `${iconOf(form.category)} ${form.category}${form.subcategory ? ` · ${form.subcategory}` : ""}`
                 : "선택 안함"}
             </button>
             {showCatPicker && (
               <div className="flex flex-col gap-1.5 mt-1">
-                {Object.entries(CATEGORY_MAP).map(([cat, subs]) => (
+                {Object.entries(categoryMap).map(([cat, subs]) => (
                   <div key={cat} className="flex flex-wrap gap-1 items-center">
-                    <span className="text-slate-500 text-xs w-4 text-center">{CATEGORY_ICONS[cat] ?? "📌"}</span>
+                    <span className="text-slate-500 text-xs w-4 text-center">{iconOf(cat)}</span>
                     {subs.map((sub) => (
                       <button
                         key={sub}
@@ -286,7 +287,7 @@ export default function Installments() {
                   <div className="flex items-center gap-2 mt-0.5">
                     {inst.category && (
                       <span className="text-xs text-slate-500">
-                        {CATEGORY_ICONS[inst.category] ?? "📌"} {inst.category}
+                        {iconOf(inst.category)} {inst.category}
                         {inst.subcategory ? ` · ${inst.subcategory}` : ""}
                       </span>
                     )}

@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { api } from "../api/client";
 import type { CategoryStatDetail, MonthlySummary } from "../api/types";
-import { CATEGORY_ICONS } from "../api/types";
+import { useCategories } from "../contexts/CategoriesContext";
 
 const COLORS = [
   "#6366f1", "#ec4899", "#f59e0b", "#10b981",
@@ -21,6 +21,7 @@ function fmt(n: number) {
 }
 
 export default function Stats() {
+  const { iconOf } = useCategories();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -126,7 +127,7 @@ export default function Stats() {
                 onClick={() => setExpanded(isOpen ? null : cat.category)}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span>{CATEGORY_ICONS[cat.category] ?? "📌"}</span>
+                  <span>{iconOf(cat.category)}</span>
                   <span className="text-white text-sm font-medium flex-1">{cat.category}</span>
                   <span className="text-white text-sm font-semibold">{fmt(cat.total)}원</span>
                   <span className="text-slate-500 text-xs ml-1">{isOpen ? "▲" : "▼"}</span>

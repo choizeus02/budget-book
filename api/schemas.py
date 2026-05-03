@@ -112,6 +112,14 @@ class InstallmentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# --- Category ---
+
+class CategoryGroup(BaseModel):
+    name: str
+    icon: str
+    subcategories: list[str]
+
+
 # --- Budget ---
 
 class BudgetCreate(BaseModel):

@@ -1,6 +1,7 @@
 import type {
   Account,
   Budget,
+  CategoryGroup,
   CategoryStat,
   CategoryStatDetail,
   Installment,
@@ -80,6 +81,10 @@ export const api = {
     update: (id: number, body: Partial<Omit<Installment, "id" | "monthly_amount" | "created_at">>) =>
       request<Installment>(`/installments/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     delete: (id: number) => request<void>(`/installments/${id}`, { method: "DELETE" }),
+  },
+
+  categories: {
+    list: () => request<CategoryGroup[]>("/categories"),
   },
 
   stats: {

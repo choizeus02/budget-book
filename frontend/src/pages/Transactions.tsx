@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import { CATEGORY_ICONS, CATEGORY_MAP } from "../api/types";
 import type { Transaction } from "../api/types";
 import CategoryBadge from "../components/CategoryBadge";
+import { useCategories } from "../contexts/CategoriesContext";
 
 function fmt(n: number) {
   return Math.abs(n).toLocaleString("ko-KR");
@@ -25,6 +25,7 @@ function toDatetimeLocal(dateStr: string) {
 }
 
 export default function Transactions() {
+  const { categoryMap, iconOf } = useCategories();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -109,10 +110,10 @@ export default function Transactions() {
                 {/* 카테고리 선택 패널 */}
                 {editingCategory === tx.id && (
                   <div className="mt-2 flex flex-col gap-2">
-                    {Object.entries(CATEGORY_MAP).map(([cat, subs]) => (
+                    {Object.entries(categoryMap).map(([cat, subs]) => (
                       <div key={cat} className="flex flex-wrap gap-1 items-center">
                         <span className="text-slate-500 text-xs w-4 text-center">
-                          {CATEGORY_ICONS[cat] ?? "📌"}
+                          {iconOf(cat)}
                         </span>
                         {subs.map((sub) => (
                           <button
