@@ -59,6 +59,7 @@ class TransactionResponse(BaseModel):
     id: int
     account_id: Optional[int]
     installment_id: Optional[int]
+    subscription_id: Optional[int]
     amount: float
     description: str
     category: Optional[str]
@@ -135,6 +136,44 @@ class CategoryCreate(BaseModel):
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     icon: Optional[str] = None
+
+
+# --- Subscription ---
+
+class SubscriptionCreate(BaseModel):
+    name: str
+    amount: float
+    cycle: str = "monthly"
+    billing_day: int = 1
+    start_year: int
+    start_month: int
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+
+
+class SubscriptionUpdate(BaseModel):
+    name: Optional[str] = None
+    amount: Optional[float] = None
+    cycle: Optional[str] = None
+    billing_day: Optional[int] = None
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class SubscriptionResponse(BaseModel):
+    id: int
+    name: str
+    amount: float
+    cycle: str
+    billing_day: int
+    category: Optional[str]
+    subcategory: Optional[str]
+    is_active: bool
+    start_date: datetime
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 # --- Budget ---

@@ -7,6 +7,7 @@ import type {
   Installment,
   MonthlySummary,
   SubcategoryItem,
+  Subscription,
   Transaction,
 } from "./types";
 
@@ -82,6 +83,18 @@ export const api = {
     update: (id: number, body: Partial<Omit<Installment, "id" | "monthly_amount" | "created_at">>) =>
       request<Installment>(`/installments/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     delete: (id: number) => request<void>(`/installments/${id}`, { method: "DELETE" }),
+  },
+
+  subscriptions: {
+    list: () => request<Subscription[]>("/subscriptions"),
+    create: (body: {
+      name: string; amount: number; cycle: string; billing_day: number;
+      start_year: number; start_month: number;
+      category?: string | null; subcategory?: string | null;
+    }) => request<Subscription>("/subscriptions", { method: "POST", body: JSON.stringify(body) }),
+    update: (id: number, body: Partial<Omit<Subscription, "id" | "start_date" | "created_at">>) =>
+      request<Subscription>(`/subscriptions/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    delete: (id: number) => request<void>(`/subscriptions/${id}`, { method: "DELETE" }),
   },
 
   categories: {

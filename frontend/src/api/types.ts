@@ -11,10 +11,24 @@ export interface Account {
   created_at: string;
 }
 
+export interface Subscription {
+  id: number;
+  name: string;
+  amount: number;
+  cycle: "monthly" | "yearly";
+  billing_day: number;
+  category: string | null;
+  subcategory: string | null;
+  is_active: boolean;
+  start_date: string;
+  created_at: string;
+}
+
 export interface Transaction {
   id: number;
   account_id: number | null;
   installment_id: number | null;
+  subscription_id: number | null;
   amount: number;
   description: string;
   category: string | null;

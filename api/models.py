@@ -57,6 +57,7 @@ class Transaction(Base):
     subcategory: Mapped[str | None] = mapped_column(String(50), nullable=True)
     category_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     installment_id: Mapped[int | None] = mapped_column(ForeignKey("installments.id", ondelete="CASCADE"), nullable=True)
+    subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id", ondelete="CASCADE"), nullable=True)
     type: Mapped[TransactionType] = mapped_column(Enum(TransactionType), nullable=False)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -64,6 +65,7 @@ class Transaction(Base):
 
     account: Mapped["Account | None"] = relationship(back_populates="transactions")
     installment: Mapped["Installment | None"] = relationship(back_populates="transactions")
+    subscription: Mapped["Subscription | None"] = relationship(back_populates="transactions")
 
 
 class Budget(Base):
@@ -91,6 +93,25 @@ class Installment(Base):
 
     transactions: Mapped[list["Transaction"]] = relationship(
         back_populates="installment", cascade="all, delete-orphan"
+    )
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    cycle: Mapped[str] = mapped_column(String(10), nullable=False, default="monthly")  # monthly | yearly
+    billing_day: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    subcategory: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    start_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="subscription", cascade="all, delete-orphan"
     )
 
 

@@ -4,7 +4,7 @@ import { CategoriesProvider } from "./contexts/CategoriesContext";
 import AddTransaction from "./pages/AddTransaction";
 import Settings from "./pages/Settings";
 import Home from "./pages/Home";
-import Installments from "./pages/Installments";
+import Payments from "./pages/Payments";
 import Stats from "./pages/Stats";
 import Transactions from "./pages/Transactions";
 
@@ -25,7 +25,7 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/stats" element={<Stats />} />
-                <Route path="/installments" element={<Installments />} />
+                <Route path="/payments" element={<Payments />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>
               <BottomNav />
