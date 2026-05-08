@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { Account } from "../api/types";
+import type { Account, Budget } from "../api/types";
 import { useCategories } from "../contexts/CategoriesContext";
 
 // ── 자산 섹션 ──────────────────────────────────────────────
@@ -241,10 +241,90 @@ function CategoriesSection() {
   );
 }
 
+// ── 예산 섹션 ──────────────────────────────────────────────
+
+function BudgetSection() {
+  const { categories, iconOf } = useCategories();
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [editingCat, setEditingCat] = useState<string | null>(null);
+  const [inputVal, setInputVal] = useState("");
+
+  useEffect(() => { api.budgets.list().then(setBudgets); }, []);
+
+  const budgetMap = Object.fromEntries(budgets.map((b) => [b.category, b]));
+
+  async function handleSave(category: string) {
+    const amount = Number(inputVal);
+    if (!amount) return;
+    const updated = await api.budgets.upsert({ category, monthly_amount: amount });
+    setBudgets((prev) => {
+      const exists = prev.find((b) => b.category === category);
+      return exists ? prev.map((b) => (b.category === category ? updated : b)) : [...prev, updated];
+    });
+    setEditingCat(null);
+  }
+
+  async function handleDelete(id: number, category: string) {
+    await api.budgets.delete(id);
+    setBudgets((prev) => prev.filter((b) => b.category !== category));
+  }
+
+  return (
+    <div className="flex flex-col gap-2 px-4">
+      <p className="text-slate-500 text-xs px-1 mb-1">카테고리별 월 지출 한도를 설정하면 홈에서 진행률을 확인할 수 있어요.</p>
+      {categories.map((cat) => {
+        const budget = budgetMap[cat.name];
+        const isEditing = editingCat === cat.name;
+        return (
+          <div key={cat.id} className="bg-slate-800 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-base">{iconOf(cat.name)}</span>
+              <span className="text-white text-sm flex-1">{cat.name}</span>
+              {isEditing ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={inputVal}
+                    onChange={(e) => setInputVal(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSave(cat.name); }}
+                    placeholder="300000"
+                    autoFocus
+                    className="w-28 bg-slate-700 text-white text-sm rounded-lg px-2 py-1 outline-none tabular-nums"
+                  />
+                  <button onClick={() => handleSave(cat.name)} className="text-indigo-400 text-sm">저장</button>
+                  <button onClick={() => setEditingCat(null)} className="text-slate-500 text-sm">취소</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => { setEditingCat(cat.name); setInputVal(budget ? String(budget.monthly_amount) : ""); }}
+                    className="text-right"
+                  >
+                    {budget
+                      ? <span className="text-slate-300 text-sm tabular-nums font-light">{budget.monthly_amount.toLocaleString("ko-KR")}원</span>
+                      : <span className="text-slate-600 text-sm">미설정</span>
+                    }
+                  </button>
+                  {budget && (
+                    <button onClick={() => handleDelete(budget.id, cat.name)} className="text-slate-600 text-xs active:text-red-400">✕</button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── 메인 설정 페이지 ───────────────────────────────────────
 
+const TAB_LABELS = { assets: "자산", budget: "예산", categories: "카테고리" } as const;
+type Tab = keyof typeof TAB_LABELS;
+
 export default function Settings() {
-  const [tab, setTab] = useState<"assets" | "categories">("assets");
+  const [tab, setTab] = useState<Tab>("assets");
 
   return (
     <div className="flex flex-col pb-20 bg-slate-950 min-h-svh">
@@ -253,18 +333,20 @@ export default function Settings() {
 
         {/* 내부 탭 */}
         <div className="flex bg-slate-800 rounded-xl p-1 mb-4">
-          {(["assets", "categories"] as const).map((t) => (
+          {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 tab === t ? "bg-slate-600 text-white" : "text-slate-400"
               }`}>
-              {t === "assets" ? "자산" : "카테고리"}
+              {TAB_LABELS[t]}
             </button>
           ))}
         </div>
       </div>
 
-      {tab === "assets" ? <AssetsSection /> : <CategoriesSection />}
+      {tab === "assets" && <AssetsSection />}
+      {tab === "budget" && <BudgetSection />}
+      {tab === "categories" && <CategoriesSection />}
     </div>
   );
 }
