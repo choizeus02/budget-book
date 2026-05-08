@@ -130,11 +130,11 @@ export default function Home() {
       {/* 이번달 할부 */}
       {installmentTotal > 0 && (
         <div className="mx-4 mb-3">
-          <Link to="/installments">
+          <Link to="/payments">
             <div className="bg-slate-800 rounded-2xl px-4 py-3 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span>💳</span>
-                <span className="text-slate-300 text-sm">이번달 할부</span>
+                <span className="text-slate-300 text-sm">이번달 납부</span>
               </div>
               <span className="text-red-400 font-semibold text-sm">-{fmt(installmentTotal)}원 →</span>
             </div>
