@@ -59,7 +59,7 @@ export default function Home() {
         {summary ? (
           <>
             <p className="text-slate-400 text-xs mb-1">이번달 지출</p>
-            <p className="text-3xl font-bold text-white mb-3">{fmt(summary.total_expense)}원</p>
+            <p className="text-3xl text-white mb-3 display-amount">{fmt(summary.total_expense)}원</p>
 
             {summary.total_income > 0 && (
               <div className="mb-3">
@@ -80,7 +80,7 @@ export default function Home() {
 
             <div className="flex justify-between border-t border-slate-700 pt-3">
               <span className="text-slate-400 text-sm">순수익</span>
-              <span className={`font-semibold ${summary.net >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              <span className={`tabular-nums font-light ${summary.net >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {summary.net >= 0 ? "+" : ""}{fmt(summary.net)}원
               </span>
             </div>

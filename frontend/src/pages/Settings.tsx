@@ -55,7 +55,7 @@ function AssetsSection() {
     <div className="flex flex-col gap-3">
       <div className="mx-4 rounded-2xl bg-indigo-900/40 border border-indigo-700/30 p-5">
         <p className="text-slate-400 text-xs mb-1">순자산 (자산 - 부채)</p>
-        <p className="text-3xl font-bold text-white">{fmt(totalAsset - totalCredit)}원</p>
+        <p className="text-3xl text-white display-amount">{fmt(totalAsset - totalCredit)}원</p>
         <div className="flex gap-4 mt-3 text-sm">
           <div><span className="text-slate-400">자산 </span><span className="text-emerald-400 font-semibold">{fmt(totalAsset)}원</span></div>
           <div><span className="text-slate-400">부채 </span><span className="text-red-400 font-semibold">{fmt(totalCredit)}원</span></div>
@@ -106,8 +106,8 @@ function AssetsSection() {
           <input type="number" value={newBalance} onChange={(e) => setNewBalance(e.target.value)}
             placeholder="현재 잔액 (원)" className="bg-slate-700 text-white rounded-xl px-4 py-2.5 text-sm outline-none" />
           <div className="flex gap-2">
-            <button onClick={() => setShowAdd(false)} className="flex-1 py-2.5 rounded-xl bg-slate-700 text-slate-400 text-sm">취소</button>
-            <button onClick={handleAdd} className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold">추가</button>
+            <button onClick={() => setShowAdd(false)} className="flex-1 py-2.5 rounded-full bg-slate-700 text-slate-400 text-sm">취소</button>
+            <button onClick={handleAdd} className="flex-1 py-2.5 rounded-full bg-indigo-600 text-white text-sm font-medium">추가</button>
           </div>
         </div>
       ) : (
@@ -224,9 +224,9 @@ function CategoriesSection() {
               placeholder="카테고리 이름" className="flex-1 bg-slate-700 text-white rounded-xl px-3 py-2 text-sm outline-none" />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setShowAddParent(false)} className="flex-1 py-2 rounded-xl bg-slate-700 text-slate-400 text-sm">취소</button>
+            <button onClick={() => setShowAddParent(false)} className="flex-1 py-2 rounded-full bg-slate-700 text-slate-400 text-sm">취소</button>
             <button onClick={handleAddParent} disabled={!parentForm.name.trim()}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold ${parentForm.name.trim() ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-500"}`}>
+              className={`flex-1 py-2 rounded-full text-sm font-medium ${parentForm.name.trim() ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-500"}`}>
               추가
             </button>
           </div>

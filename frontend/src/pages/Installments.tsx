@@ -246,14 +246,14 @@ export default function Installments() {
           <div className="flex gap-2">
             <button
               onClick={() => setShowForm(false)}
-              className="flex-1 py-2.5 rounded-xl bg-slate-700 text-slate-300 text-sm"
+              className="flex-1 py-2.5 rounded-full bg-slate-700 text-slate-300 text-sm"
             >
               취소
             </button>
             <button
               onClick={handleSave}
               disabled={!form.name || !form.total_amount || !form.total_months || loading}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+              className={`flex-1 py-2.5 rounded-full text-sm font-medium transition-colors ${
                 form.name && form.total_amount && form.total_months && !loading
                   ? "bg-indigo-600 text-white"
                   : "bg-slate-700 text-slate-500"
@@ -297,7 +297,7 @@ export default function Installments() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end shrink-0">
-                  <span className="text-white text-sm font-semibold">월 {fmt(inst.monthly_amount)}원</span>
+                  <span className="text-white text-sm tabular-nums font-light">월 {fmt(inst.monthly_amount)}원</span>
                   <span className="text-slate-400 text-xs">{current}/{inst.total_months}개월</span>
                 </div>
               </div>

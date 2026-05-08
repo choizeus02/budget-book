@@ -68,15 +68,15 @@ export default function Stats() {
         <div className="mx-4 rounded-2xl bg-slate-800 p-4 flex justify-around mb-4">
           <div className="text-center">
             <p className="text-xs text-slate-400 mb-1">지출</p>
-            <p className="text-red-400 font-bold">{fmt(summary.total_expense)}원</p>
+            <p className="text-red-400 tabular-nums font-light">{fmt(summary.total_expense)}원</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-slate-400 mb-1">수입</p>
-            <p className="text-emerald-400 font-bold">{fmt(summary.total_income)}원</p>
+            <p className="text-emerald-400 tabular-nums font-light">{fmt(summary.total_income)}원</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-slate-400 mb-1">순수익</p>
-            <p className={`font-bold ${summary.net >= 0 ? "text-white" : "text-red-400"}`}>
+            <p className={`tabular-nums font-light ${summary.net >= 0 ? "text-white" : "text-red-400"}`}>
               {summary.net >= 0 ? "+" : ""}{fmt(summary.net)}원
             </p>
           </div>

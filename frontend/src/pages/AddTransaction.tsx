@@ -107,7 +107,7 @@ export default function AddTransaction() {
         <button
           onClick={handleSave}
           disabled={!amount || loading}
-          className={`w-full py-4 rounded-2xl text-base font-bold transition-all ${
+          className={`w-full py-4 rounded-full text-base font-medium transition-all ${
             amount && !loading
               ? "bg-indigo-600 text-white active:scale-95"
               : "bg-slate-800 text-slate-600"

@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* ── Stripe-inspired navy palette ── */
+@theme {
+  /* Surfaces */
+  --color-slate-950: #07080f;
+  --color-slate-900: #0c0e1d;
+  --color-slate-800: #14163d;
+  --color-slate-700: #1d2056;
+  --color-slate-600: #2c306e;
+  --color-slate-500: #656d99;
+  --color-slate-400: #8893b8;
+  --color-slate-300: #b8c1d6;
+  --color-slate-200: #d4daea;
+
+  /* Stripe primary indigo */
+  --color-indigo-600: #533afd;
+  --color-indigo-500: #665efd;
+  --color-indigo-400: #8b85fd;
+  --color-indigo-300: #b9b9f9;
+  --color-indigo-900: #1c1566;
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -7,9 +28,11 @@
 
 body {
   margin: 0;
-  background-color: #0f172a;
+  background-color: #07080f;
   color: #f1f5f9;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 300;
+  font-feature-settings: "ss01", "tnum";
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
@@ -20,17 +43,21 @@ body {
   flex-direction: column;
 }
 
-/* 숫자 패드 크게 */
+/* 큰 금액 디스플레이 — Stripe display-lg 스타일 */
+.display-amount {
+  font-weight: 300;
+  letter-spacing: -0.64px;
+  font-feature-settings: "tnum", "ss01";
+}
+
+/* 숫자 패드 */
 .numpad-btn {
-  @apply flex items-center justify-center text-2xl font-semibold rounded-2xl bg-slate-800 active:bg-slate-600 transition-colors select-none cursor-pointer;
+  @apply flex items-center justify-center text-2xl rounded-2xl active:bg-slate-600 transition-colors select-none cursor-pointer;
   height: 64px;
+  background-color: #1d2056;
+  font-weight: 400;
 }
 
 /* 스크롤바 숨김 */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
