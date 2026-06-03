@@ -39,6 +39,7 @@ export default function ReportSection() {
     const prevYear = month === 1 ? year - 1 : year;
     const prevMonth = month === 1 ? 12 : month - 1;
 
+    // Core 6 — if these fail, show error state
     Promise.all([
       api.stats.monthly(year, month),
       api.stats.monthly(prevYear, prevMonth),
@@ -46,31 +47,33 @@ export default function ReportSection() {
       api.stats.byCategoryDetail(year, month),
       api.stats.fixedVsVariable(year, month),
       api.stats.topTransactions(year, month, 5),
-      api.stats.byCategoryDetail(prevYear, prevMonth),
-      api.stats.yearly(year),
-      api.stats.dayOfWeek(year, month),
-      api.stats.uncategorized(year, month),
-    ]).then(([s, ps, d, c, fv, t, pc, ys, dow, uc]) => {
+    ]).then(([s, ps, d, c, fv, t]) => {
       setSummary(s);
       setPrevSummary(ps);
       setDaily(d);
       setCategories(c);
       setFixedVar(fv);
       setTopTx(t);
-      setPrevCategories(pc);
-      setYearlySummary(ys);
-      setDowStats(dow);
-      setUncategorized(uc);
     }).catch(() => {
       setSummary({ year, month, total_income: 0, total_expense: 0, net: 0 });
       setDaily([]);
       setCategories([]);
       setTopTx([]);
-      setPrevCategories([]);
-      setYearlySummary(null);
-      setDowStats([]);
-      setUncategorized(null);
     });
+
+    // Enhancement 4 — individual catches so one failure doesn't affect others
+    api.stats.byCategoryDetail(prevYear, prevMonth)
+      .then(setPrevCategories)
+      .catch(() => setPrevCategories([]));
+    api.stats.yearly(year)
+      .then(setYearlySummary)
+      .catch(() => setYearlySummary(null));
+    api.stats.dayOfWeek(year, month)
+      .then(setDowStats)
+      .catch(() => setDowStats([]));
+    api.stats.uncategorized(year, month)
+      .then(setUncategorized)
+      .catch(() => setUncategorized(null));
   }, [year, month]);
 
   function prevMonth() {
