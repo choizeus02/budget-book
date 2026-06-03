@@ -285,8 +285,37 @@ export default function ReportSection() {
           </div>
         </div>
       )}
-      {/* 섹션 7-12: Task 7-12에서 추가 */}
-      {prevCategories && yearlySummary && dowStats && uncategorized && null}
+      {/* 섹션 7: 카테고리별 전월 대비 */}
+      {categories.length > 0 && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">카테고리별 전월 대비</p>
+          <div className="flex flex-col gap-2">
+            {categories.map((cat) => {
+              const prev = prevCategories.find((c) => c.category === cat.category);
+              const diff = prev && prev.total > 0
+                ? ((cat.total - prev.total) / prev.total) * 100
+                : null;
+              const isGood = diff === null || diff === 0 ? null : diff < 0;
+              const color = isGood === null ? "text-slate-500"
+                : isGood ? "text-emerald-400" : "text-red-400";
+              return (
+                <div key={cat.category} className="flex items-center justify-between">
+                  <span className="text-slate-300 text-xs">{iconOf(cat.category)} {cat.category}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 text-xs tabular-nums">{fmt(cat.total)}원</span>
+                    <span className={`text-xs tabular-nums font-medium w-16 text-right ${color}`}>
+                      {diff === null ? "--" : `${diff >= 0 ? "▲" : "▼"} ${Math.abs(diff).toFixed(1)}%`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 섹션 8-12: Task 8-12에서 추가 */}
+      {yearlySummary && dowStats && uncategorized && null}
     </div>
   );
 }
