@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { api } from "../../api/client";
 import type {
   CategoryStatDetail,
@@ -77,6 +78,14 @@ export default function ReportSection() {
     ? savingsRate - prevSavingsRate
     : null;
 
+  // 일별 바 차트 데이터 — 없는 날은 0
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const dailyMap = new Map(daily.map((d) => [d.day, d.total]));
+  const dailyChartData = Array.from({ length: daysInMonth }, (_, i) => ({
+    day: i + 1,
+    total: dailyMap.get(i + 1) ?? 0,
+  }));
+
   return (
     <div className="flex flex-col gap-3 pb-4">
       {/* 월 네비게이션 */}
@@ -139,8 +148,34 @@ export default function ReportSection() {
         </div>
       )}
 
-      {/* 섹션 3-6: Task 8-10에서 추가 */}
-      {daily && categories && fixedVar && topTx && null}
+      {/* 섹션 3: 일별 지출 추이 */}
+      <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+        <p className="text-slate-500 text-xs mb-3">일별 지출 추이</p>
+        {daily.length === 0 ? (
+          <p className="text-slate-600 text-xs text-center py-4">데이터 없음</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={100}>
+            <BarChart data={dailyChartData} barCategoryGap="20%">
+              <XAxis
+                dataKey="day"
+                tick={{ fill: "#475569", fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                ticks={[1, Math.ceil(daysInMonth / 2), daysInMonth]}
+              />
+              <Tooltip
+                formatter={(v) => [`${fmt(Number(v))}원`, "지출"]}
+                contentStyle={{ background: "#1e293b", border: "none", borderRadius: 8, color: "#fff", fontSize: 12 }}
+                cursor={{ fill: "#334155" }}
+              />
+              <Bar dataKey="total" fill="#6366f1" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* 섹션 4-6: Task 9-10에서 추가 */}
+      {categories && fixedVar && topTx && null}
     </div>
   );
 }
