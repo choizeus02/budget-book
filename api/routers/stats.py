@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models import Budget, Transaction, TransactionType
 from schemas import (
-    CategoryStat, CategoryStatDetail, DailyStat, FixedVsVariable,
-    MonthlySummary, SubcategoryStat, TopTransaction,
+    CategoryStat, CategoryStatDetail, DailyStat, DowStat, FixedVsVariable,
+    MonthlyEntry, MonthlySummary, SubcategoryStat, TopTransaction,
+    UncategorizedStat, YearlySummary,
 )
 
 router = APIRouter(prefix="/stats", tags=["stats"])
@@ -225,4 +226,48 @@ async def fixed_vs_variable(
         variable_total=variable_total,
         fixed_ratio=round(fixed_total / grand_total, 4),
         variable_ratio=round(variable_total / grand_total, 4),
+    )
+
+
+@router.get("/yearly", response_model=YearlySummary)
+async def yearly_stats(
+    year: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(
+            extract("month", Transaction.date).label("month"),
+            Transaction.type,
+            func.sum(Transaction.amount).label("total"),
+        )
+        .where(extract("year", Transaction.date) == year)
+        .group_by(extract("month", Transaction.date), Transaction.type)
+        .order_by(extract("month", Transaction.date))
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    month_data: dict[int, dict] = {m: {"income": 0.0, "expense": 0.0} for m in range(1, 13)}
+    for row in rows:
+        m = int(row.month)
+        if row.type == TransactionType.income:
+            month_data[m]["income"] += row.total or 0.0
+        else:
+            month_data[m]["expense"] += abs(row.total or 0.0)
+
+    total_income = sum(v["income"] for v in month_data.values())
+    total_expense = sum(v["expense"] for v in month_data.values())
+    net = total_income - total_expense
+    savings_rate = round(net / total_income, 4) if total_income > 0 else None
+
+    return YearlySummary(
+        year=year,
+        total_income=total_income,
+        total_expense=total_expense,
+        net=net,
+        savings_rate=savings_rate,
+        months=[
+            MonthlyEntry(month=m, income=month_data[m]["income"], expense=month_data[m]["expense"])
+            for m in range(1, 13)
+        ],
     )
