@@ -5,6 +5,7 @@ import type {
   CategoryStat,
   CategoryStatDetail,
   DailyStat,
+  DowStat,
   FixedVsVariable,
   Installment,
   MonthlySummary,
@@ -12,6 +13,8 @@ import type {
   Subscription,
   TopTransaction,
   Transaction,
+  UncategorizedStat,
+  YearlySummary,
 } from "./types";
 
 const BASE = "/api";
@@ -123,5 +126,11 @@ export const api = {
       request<TopTransaction[]>(`/stats/top-transactions?year=${year}&month=${month}&limit=${limit}`),
     fixedVsVariable: (year: number, month: number) =>
       request<FixedVsVariable>(`/stats/fixed-vs-variable?year=${year}&month=${month}`),
+    yearly: (year: number) =>
+      request<YearlySummary>(`/stats/yearly?year=${year}`),
+    dayOfWeek: (year: number, month: number) =>
+      request<DowStat[]>(`/stats/day-of-week?year=${year}&month=${month}`),
+    uncategorized: (year: number, month: number) =>
+      request<UncategorizedStat>(`/stats/uncategorized?year=${year}&month=${month}`),
   },
 };

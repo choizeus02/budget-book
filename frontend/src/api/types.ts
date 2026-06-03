@@ -122,3 +122,30 @@ export interface FixedVsVariable {
   fixed_ratio: number;
   variable_ratio: number;
 }
+
+export interface MonthlyEntry {
+  month: number;
+  income: number;
+  expense: number;
+}
+
+export interface YearlySummary {
+  year: number;
+  total_income: number;
+  total_expense: number;
+  net: number;
+  savings_rate: number | null;
+  months: MonthlyEntry[];
+}
+
+export interface DowStat {
+  dow: number;   // PostgreSQL DOW: 0=日, 1=月, ..., 6=土
+  total: number;
+  count: number;
+}
+
+export interface UncategorizedStat {
+  total_count: number;
+  uncategorized_count: number;
+  ratio: number;
+}
