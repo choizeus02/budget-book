@@ -101,3 +101,24 @@ export interface CategoryGroup {
   icon: string;
   subcategories: SubcategoryItem[];
 }
+
+export interface DailyStat {
+  day: number;
+  total: number;
+}
+
+export interface TopTransaction {
+  id: number;
+  description: string;
+  amount: number;
+  category: string | null;
+  subcategory: string | null;
+  date: string;
+}
+
+export interface FixedVsVariable {
+  fixed_total: number;
+  variable_total: number;
+  fixed_ratio: number;
+  variable_ratio: number;
+}

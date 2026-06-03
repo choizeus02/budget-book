@@ -4,10 +4,13 @@ import type {
   CategoryGroup,
   CategoryStat,
   CategoryStatDetail,
+  DailyStat,
+  FixedVsVariable,
   Installment,
   MonthlySummary,
   SubcategoryItem,
   Subscription,
+  TopTransaction,
   Transaction,
 } from "./types";
 
@@ -114,5 +117,11 @@ export const api = {
       request<CategoryStat[]>(`/stats/by-category?year=${year}&month=${month}`),
     byCategoryDetail: (year: number, month: number) =>
       request<CategoryStatDetail[]>(`/stats/by-category-detail?year=${year}&month=${month}`),
+    daily: (year: number, month: number) =>
+      request<DailyStat[]>(`/stats/daily?year=${year}&month=${month}`),
+    topTransactions: (year: number, month: number, limit = 5) =>
+      request<TopTransaction[]>(`/stats/top-transactions?year=${year}&month=${month}&limit=${limit}`),
+    fixedVsVariable: (year: number, month: number) =>
+      request<FixedVsVariable>(`/stats/fixed-vs-variable?year=${year}&month=${month}`),
   },
 };
