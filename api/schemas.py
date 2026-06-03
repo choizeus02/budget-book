@@ -221,3 +221,26 @@ class CategoryStatDetail(BaseModel):
     count: int
     budget: Optional[float] = None
     subcategories: list[SubcategoryStat]
+
+
+# --- Monthly Report ---
+
+class DailyStat(BaseModel):
+    day: int
+    total: float
+
+
+class TopTransaction(BaseModel):
+    id: int
+    description: str
+    amount: float
+    category: Optional[str]
+    subcategory: Optional[str]
+    date: datetime
+
+
+class FixedVsVariable(BaseModel):
+    fixed_total: float
+    variable_total: float
+    fixed_ratio: float
+    variable_ratio: float
