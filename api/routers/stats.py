@@ -183,3 +183,46 @@ async def top_transactions(
         )
         for tx in txs
     ]
+
+
+@router.get("/fixed-vs-variable", response_model=FixedVsVariable)
+async def fixed_vs_variable(
+    year: int,
+    month: int,
+    db: AsyncSession = Depends(get_db),
+):
+    base_filter = [
+        extract("year", Transaction.date) == year,
+        extract("month", Transaction.date) == month,
+        Transaction.type == TransactionType.expense,
+    ]
+
+    fixed_stmt = select(func.sum(Transaction.amount)).where(
+        *base_filter,
+        or_(
+            Transaction.subscription_id.is_not(None),
+            Transaction.installment_id.is_not(None),
+        ),
+    )
+    variable_stmt = select(func.sum(Transaction.amount)).where(
+        *base_filter,
+        Transaction.subscription_id.is_(None),
+        Transaction.installment_id.is_(None),
+    )
+
+    fixed_total = abs((await db.execute(fixed_stmt)).scalar() or 0.0)
+    variable_total = abs((await db.execute(variable_stmt)).scalar() or 0.0)
+    grand_total = fixed_total + variable_total
+
+    if grand_total == 0:
+        return FixedVsVariable(
+            fixed_total=0.0, variable_total=0.0,
+            fixed_ratio=0.0, variable_ratio=0.0,
+        )
+
+    return FixedVsVariable(
+        fixed_total=fixed_total,
+        variable_total=variable_total,
+        fixed_ratio=round(fixed_total / grand_total, 4),
+        variable_ratio=round(variable_total / grand_total, 4),
+    )
