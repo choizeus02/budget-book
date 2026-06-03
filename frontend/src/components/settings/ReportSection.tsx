@@ -419,8 +419,69 @@ export default function ReportSection() {
         </div>
       )}
 
-      {/* 섹션 11-12: Task 11-12에서 추가 */}
-      {dowStats && uncategorized && null}
+      {/* 섹션 11: 요일별 지출 패턴 */}
+      {dowStats.length > 0 && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">요일별 지출 패턴</p>
+          {(() => {
+            const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+            const dowMap = new Map(dowStats.map((d) => [d.dow, d.total]));
+            // 월~일 순서: PG DOW [1,2,3,4,5,6,0]
+            const chartData = [1, 2, 3, 4, 5, 6, 0].map((d) => ({
+              name: DOW_LABELS[d],
+              total: dowMap.get(d) ?? 0,
+            }));
+            const maxTotal = Math.max(...chartData.map((d) => d.total));
+            return (
+              <ResponsiveContainer width="100%" height={80}>
+                <BarChart data={chartData} barCategoryGap="20%">
+                  <XAxis dataKey="name" tick={{ fill: "#475569", fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    formatter={(v) => [`${fmt(Number(v))}원`, "지출"]}
+                    contentStyle={{ background: "#1e293b", border: "none", borderRadius: 8, color: "#fff", fontSize: 12 }}
+                    cursor={{ fill: "#334155" }}
+                  />
+                  <Bar dataKey="total" radius={[2, 2, 0, 0]}>
+                    {chartData.map((entry) => (
+                      <Cell
+                        key={entry.name}
+                        fill={entry.total === maxTotal && maxTotal > 0 ? "#6366f1" : "#6366f133"}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* 섹션 12: 미분류 거래 비율 */}
+      {uncategorized && uncategorized.total_count > 0 && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">미분류 거래</p>
+          {uncategorized.uncategorized_count === 0 ? (
+            <p className="text-emerald-400 text-sm">모든 거래가 분류됨 ✓</p>
+          ) : (
+            <>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-white text-sm tabular-nums">
+                  {uncategorized.uncategorized_count}건 미분류
+                </span>
+                <span className="text-slate-400 text-xs tabular-nums">
+                  {uncategorized.total_count}건 중 {(uncategorized.ratio * 100).toFixed(1)}%
+                </span>
+              </div>
+              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${uncategorized.ratio > 0.2 ? "bg-amber-400" : "bg-indigo-500"}`}
+                  style={{ width: `${uncategorized.ratio * 100}%` }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
