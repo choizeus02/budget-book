@@ -28,7 +28,7 @@ export default function Home() {
     ]).then(([s, cats, txs]) => {
       setSummary(s);
       setCatStats(cats);
-      setRecent(txs.slice(0, 5));
+      setRecent(txs.filter((tx) => tx.subscription_id == null && tx.installment_id == null).slice(0, 5));
       setInstallmentTotal(
         txs
           .filter((tx) => tx.installment_id != null && tx.type === "expense")
