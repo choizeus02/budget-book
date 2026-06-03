@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -159,7 +159,7 @@ async def daily_stats(
 async def top_transactions(
     year: int,
     month: int,
-    limit: int = 5,
+    limit: int = Query(default=5, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
 ):
     stmt = (

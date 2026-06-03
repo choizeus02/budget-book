@@ -14,9 +14,6 @@ function fmt(n: number) {
   return Math.abs(n).toLocaleString("ko-KR");
 }
 
-export function fmtPct(n: number) {
-  return `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
-}
 
 export default function ReportSection() {
   const { iconOf } = useCategories();
@@ -49,6 +46,11 @@ export default function ReportSection() {
       setCategories(c);
       setFixedVar(fv);
       setTopTx(t);
+    }).catch(() => {
+      setSummary({ year, month, total_income: 0, total_expense: 0, net: 0 });
+      setDaily([]);
+      setCategories([]);
+      setTopTx([]);
     });
   }, [year, month]);
 
@@ -134,8 +136,8 @@ export default function ReportSection() {
               { label: "수입", diff: incomeDiff, invert: false },
               { label: "저축률", diff: savingsDiff, invert: false, unit: "p" },
             ].map(({ label, diff, invert, unit = "" }) => {
-              const isGood = diff === null ? null : invert ? diff < 0 : diff > 0;
-              const color = diff === null ? "text-slate-500"
+              const isGood = diff === null || diff === 0 ? null : invert ? diff < 0 : diff > 0;
+              const color = isGood === null ? "text-slate-500"
                 : isGood ? "text-emerald-400" : "text-red-400";
               return (
                 <div key={label} className="flex-1 bg-slate-900 rounded-xl p-3 text-center">
