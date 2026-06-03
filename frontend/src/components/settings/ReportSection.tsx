@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, Cell, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { api } from "../../api/client";
 import { useCategories } from "../../contexts/CategoriesContext";
 import type {
@@ -370,8 +370,57 @@ export default function ReportSection() {
         </div>
       )}
 
-      {/* 섹션 10-12: Task 10-12에서 추가 */}
-      {yearlySummary && dowStats && uncategorized && null}
+      {/* 섹션 10: 연간 누적 (YTD) */}
+      {yearlySummary && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">{year}년 누적</p>
+          <div className="flex justify-around mb-4">
+            <div className="text-center">
+              <p className="text-xs text-slate-400 mb-1">수입</p>
+              <p className="text-emerald-400 tabular-nums font-light text-sm">{fmt(yearlySummary.total_income)}원</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-slate-400 mb-1">지출</p>
+              <p className="text-red-400 tabular-nums font-light text-sm">{fmt(yearlySummary.total_expense)}원</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-slate-400 mb-1">저축률</p>
+              <p className="text-indigo-400 tabular-nums font-light text-sm">
+                {yearlySummary.savings_rate !== null
+                  ? `${(yearlySummary.savings_rate * 100).toFixed(1)}%`
+                  : "--"}
+              </p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={60}>
+            <BarChart data={yearlySummary.months} barCategoryGap="15%">
+              <XAxis
+                dataKey="month"
+                tick={{ fill: "#475569", fontSize: 9 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${v}월`}
+              />
+              <Tooltip
+                formatter={(v) => [`${fmt(Number(v))}원`, "지출"]}
+                contentStyle={{ background: "#1e293b", border: "none", borderRadius: 8, color: "#fff", fontSize: 12 }}
+                cursor={{ fill: "#334155" }}
+              />
+              <Bar dataKey="expense" radius={[2, 2, 0, 0]}>
+                {yearlySummary.months.map((entry) => (
+                  <Cell
+                    key={entry.month}
+                    fill={entry.month === month ? "#6366f1" : "#6366f133"}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* 섹션 11-12: Task 11-12에서 추가 */}
+      {dowStats && uncategorized && null}
     </div>
   );
 }
