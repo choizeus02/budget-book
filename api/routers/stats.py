@@ -296,3 +296,31 @@ async def day_of_week_stats(
         DowStat(dow=int(row.dow), total=abs(row.total or 0.0), count=row.count)
         for row in result.all()
     ]
+
+
+@router.get("/uncategorized", response_model=UncategorizedStat)
+async def uncategorized_stats(
+    year: int,
+    month: int,
+    db: AsyncSession = Depends(get_db),
+):
+    base_filter = [
+        extract("year", Transaction.date) == year,
+        extract("month", Transaction.date) == month,
+        Transaction.type == TransactionType.expense,
+    ]
+    total_stmt = select(func.count(Transaction.id)).where(*base_filter)
+    uncat_stmt = select(func.count(Transaction.id)).where(
+        *base_filter,
+        Transaction.category.is_(None),
+    )
+
+    total_count = (await db.execute(total_stmt)).scalar() or 0
+    uncategorized_count = (await db.execute(uncat_stmt)).scalar() or 0
+    ratio = round(uncategorized_count / total_count, 4) if total_count > 0 else 0.0
+
+    return UncategorizedStat(
+        total_count=total_count,
+        uncategorized_count=uncategorized_count,
+        ratio=ratio,
+    )
