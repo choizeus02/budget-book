@@ -5,9 +5,12 @@ import { useCategories } from "../../contexts/CategoriesContext";
 import type {
   CategoryStatDetail,
   DailyStat,
+  DowStat,
   FixedVsVariable,
   MonthlySummary,
   TopTransaction,
+  UncategorizedStat,
+  YearlySummary,
 } from "../../api/types";
 
 function fmt(n: number) {
@@ -27,6 +30,10 @@ export default function ReportSection() {
   const [categories, setCategories] = useState<CategoryStatDetail[]>([]);
   const [fixedVar, setFixedVar] = useState<FixedVsVariable | null>(null);
   const [topTx, setTopTx] = useState<TopTransaction[]>([]);
+  const [prevCategories, setPrevCategories] = useState<CategoryStatDetail[]>([]);
+  const [yearlySummary, setYearlySummary] = useState<YearlySummary | null>(null);
+  const [dowStats, setDowStats] = useState<DowStat[]>([]);
+  const [uncategorized, setUncategorized] = useState<UncategorizedStat | null>(null);
 
   useEffect(() => {
     const prevYear = month === 1 ? year - 1 : year;
@@ -39,18 +46,30 @@ export default function ReportSection() {
       api.stats.byCategoryDetail(year, month),
       api.stats.fixedVsVariable(year, month),
       api.stats.topTransactions(year, month, 5),
-    ]).then(([s, ps, d, c, fv, t]) => {
+      api.stats.byCategoryDetail(prevYear, prevMonth),
+      api.stats.yearly(year),
+      api.stats.dayOfWeek(year, month),
+      api.stats.uncategorized(year, month),
+    ]).then(([s, ps, d, c, fv, t, pc, ys, dow, uc]) => {
       setSummary(s);
       setPrevSummary(ps);
       setDaily(d);
       setCategories(c);
       setFixedVar(fv);
       setTopTx(t);
+      setPrevCategories(pc);
+      setYearlySummary(ys);
+      setDowStats(dow);
+      setUncategorized(uc);
     }).catch(() => {
       setSummary({ year, month, total_income: 0, total_expense: 0, net: 0 });
       setDaily([]);
       setCategories([]);
       setTopTx([]);
+      setPrevCategories([]);
+      setYearlySummary(null);
+      setDowStats([]);
+      setUncategorized(null);
     });
   }, [year, month]);
 
@@ -266,6 +285,8 @@ export default function ReportSection() {
           </div>
         </div>
       )}
+      {/* 섹션 7-12: Task 7-12에서 추가 */}
+      {prevCategories && yearlySummary && dowStats && uncategorized && null}
     </div>
   );
 }
