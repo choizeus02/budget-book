@@ -244,3 +244,30 @@ class FixedVsVariable(BaseModel):
     variable_total: float
     fixed_ratio: float
     variable_ratio: float
+
+
+class MonthlyEntry(BaseModel):
+    month: int
+    income: float
+    expense: float
+
+
+class YearlySummary(BaseModel):
+    year: int
+    total_income: float
+    total_expense: float
+    net: float
+    savings_rate: Optional[float]
+    months: list[MonthlyEntry]
+
+
+class DowStat(BaseModel):
+    dow: int      # PostgreSQL DOW: 0=일, 1=월, ..., 6=토
+    total: float
+    count: int
+
+
+class UncategorizedStat(BaseModel):
+    total_count: int
+    uncategorized_count: int
+    ratio: float
