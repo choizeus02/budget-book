@@ -153,3 +153,33 @@ async def daily_stats(
         DailyStat(day=int(row.day), total=abs(row.total or 0.0))
         for row in result.all()
     ]
+
+
+@router.get("/top-transactions", response_model=list[TopTransaction])
+async def top_transactions(
+    year: int,
+    month: int,
+    limit: int = 5,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(Transaction)
+        .where(extract("year", Transaction.date) == year)
+        .where(extract("month", Transaction.date) == month)
+        .where(Transaction.type == TransactionType.expense)
+        .order_by(Transaction.amount)  # 음수이므로 ASC = 지출 큰 순
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    txs = result.scalars().all()
+    return [
+        TopTransaction(
+            id=tx.id,
+            description=tx.description,
+            amount=abs(tx.amount),
+            category=tx.category,
+            subcategory=tx.subcategory,
+            date=tx.date,
+        )
+        for tx in txs
+    ]
