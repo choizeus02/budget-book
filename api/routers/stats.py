@@ -271,3 +271,28 @@ async def yearly_stats(
             for m in range(1, 13)
         ],
     )
+
+
+@router.get("/day-of-week", response_model=list[DowStat])
+async def day_of_week_stats(
+    year: int,
+    month: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(
+            extract("dow", Transaction.date).label("dow"),
+            func.sum(Transaction.amount).label("total"),
+            func.count(Transaction.id).label("count"),
+        )
+        .where(extract("year", Transaction.date) == year)
+        .where(extract("month", Transaction.date) == month)
+        .where(Transaction.type == TransactionType.expense)
+        .group_by(extract("dow", Transaction.date))
+        .order_by(extract("dow", Transaction.date))
+    )
+    result = await db.execute(stmt)
+    return [
+        DowStat(dow=int(row.dow), total=abs(row.total or 0.0), count=row.count)
+        for row in result.all()
+    ]
