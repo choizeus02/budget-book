@@ -2,12 +2,15 @@ from collections import defaultdict
 from typing import Optional
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import extract, func, select
+from sqlalchemy import extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models import Budget, Transaction, TransactionType
-from schemas import CategoryStat, CategoryStatDetail, MonthlySummary, SubcategoryStat
+from schemas import (
+    CategoryStat, CategoryStatDetail, DailyStat, FixedVsVariable,
+    MonthlySummary, SubcategoryStat, TopTransaction,
+)
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -125,4 +128,28 @@ async def by_category_detail(
             subcategories=sorted(cat_map[key]["subcategories"], key=lambda x: -x.total),
         )
         for key in cat_order
+    ]
+
+
+@router.get("/daily", response_model=list[DailyStat])
+async def daily_stats(
+    year: int,
+    month: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(
+            extract("day", Transaction.date).label("day"),
+            func.sum(Transaction.amount).label("total"),
+        )
+        .where(extract("year", Transaction.date) == year)
+        .where(extract("month", Transaction.date) == month)
+        .where(Transaction.type == TransactionType.expense)
+        .group_by(extract("day", Transaction.date))
+        .order_by(extract("day", Transaction.date))
+    )
+    result = await db.execute(stmt)
+    return [
+        DailyStat(day=int(row.day), total=abs(row.total or 0.0))
+        for row in result.all()
     ]
