@@ -213,8 +213,57 @@ export default function ReportSection() {
         </div>
       )}
 
-      {/* 섹션 5-6: Task 10에서 추가 */}
-      {fixedVar && topTx && null}
+      {/* 섹션 5: 고정비 vs 변동비 */}
+      {fixedVar && (fixedVar.fixed_total + fixedVar.variable_total) > 0 && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">고정비 vs 변동비</p>
+          <div className="flex gap-2 mb-3">
+            <div className="flex-1 bg-slate-900 rounded-xl p-3 text-center">
+              <p className="text-xs text-slate-500 mb-1">고정비</p>
+              <p className="text-amber-400 text-sm font-semibold tabular-nums">{fmt(fixedVar.fixed_total)}원</p>
+              <p className="text-slate-600 text-xs">{(fixedVar.fixed_ratio * 100).toFixed(1)}%</p>
+            </div>
+            <div className="flex-1 bg-slate-900 rounded-xl p-3 text-center">
+              <p className="text-xs text-slate-500 mb-1">변동비</p>
+              <p className="text-indigo-400 text-sm font-semibold tabular-nums">{fmt(fixedVar.variable_total)}원</p>
+              <p className="text-slate-600 text-xs">{(fixedVar.variable_ratio * 100).toFixed(1)}%</p>
+            </div>
+          </div>
+          <div className="flex h-2 rounded-full overflow-hidden">
+            <div
+              className="bg-amber-400"
+              style={{ width: `${fixedVar.fixed_ratio * 100}%` }}
+            />
+            <div className="flex-1 bg-indigo-500" />
+          </div>
+        </div>
+      )}
+
+      {/* 섹션 6: TOP 5 지출 */}
+      {topTx.length > 0 && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">TOP {topTx.length} 지출</p>
+          <div className="flex flex-col">
+            {topTx.map((tx, i) => (
+              <div key={tx.id}>
+                {i > 0 && <div className="h-px bg-slate-700 my-2" />}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white text-sm">{tx.description || "(메모 없음)"}</p>
+                    <p className="text-slate-500 text-xs">
+                      {tx.category ? `${iconOf(tx.category)} ${tx.category}` : "미분류"}
+                      {tx.subcategory ? ` · ${tx.subcategory}` : ""}
+                    </p>
+                  </div>
+                  <p className="text-red-400 text-sm font-semibold tabular-nums ml-3">
+                    {fmt(tx.amount)}원
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
