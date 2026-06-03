@@ -314,7 +314,63 @@ export default function ReportSection() {
         </div>
       )}
 
-      {/* 섹션 8-12: Task 8-12에서 추가 */}
+      {/* 섹션 8: 월말 지출 예측 (현재 달만 표시) */}
+      {(() => {
+        const today = new Date();
+        const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
+        if (!isCurrentMonth || !summary || summary.total_expense === 0) return null;
+        const todayDay = today.getDate();
+        const projected = (summary.total_expense / todayDay) * daysInMonth;
+        const totalBudget = categories.reduce((s, c) => s + (c.budget ?? 0), 0);
+        const overBudget = totalBudget > 0 && projected > totalBudget;
+        return (
+          <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+            <p className="text-slate-500 text-xs mb-3">월말 지출 예측</p>
+            <div className="flex items-end gap-1 mb-1">
+              <p className={`text-xl font-semibold tabular-nums ${overBudget ? "text-red-400" : "text-white"}`}>
+                {fmt(projected)}원
+              </p>
+              <p className="text-slate-500 text-xs mb-0.5">예상</p>
+            </div>
+            <p className="text-slate-500 text-xs">
+              {todayDay}일 기준 일평균 {fmt(summary.total_expense / todayDay)}원
+              {totalBudget > 0 && (
+                <span className={overBudget ? " text-red-400" : " text-emerald-400"}>
+                  {" · "}예산 {fmt(totalBudget)}원 {overBudget ? "초과 예상" : "이내 예상"}
+                </span>
+              )}
+            </p>
+          </div>
+        );
+      })()}
+
+      {/* 섹션 9: 주간 지출 분포 */}
+      {daily.length > 0 && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">주간 지출 분포</p>
+          <ResponsiveContainer width="100%" height={80}>
+            <BarChart
+              data={[
+                { week: '1주', total: daily.filter(d => d.day <= 7).reduce((s, d) => s + d.total, 0) },
+                { week: '2주', total: daily.filter(d => d.day > 7 && d.day <= 14).reduce((s, d) => s + d.total, 0) },
+                { week: '3주', total: daily.filter(d => d.day > 14 && d.day <= 21).reduce((s, d) => s + d.total, 0) },
+                { week: '4주', total: daily.filter(d => d.day > 21).reduce((s, d) => s + d.total, 0) },
+              ]}
+              barCategoryGap="30%"
+            >
+              <XAxis dataKey="week" tick={{ fill: "#475569", fontSize: 10 }} tickLine={false} axisLine={false} />
+              <Tooltip
+                formatter={(v) => [`${fmt(Number(v))}원`, "지출"]}
+                contentStyle={{ background: "#1e293b", border: "none", borderRadius: 8, color: "#fff", fontSize: 12 }}
+                cursor={{ fill: "#334155" }}
+              />
+              <Bar dataKey="total" fill="#6366f1" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* 섹션 10-12: Task 10-12에서 추가 */}
       {yearlySummary && dowStats && uncategorized && null}
     </div>
   );
