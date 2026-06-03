@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { api } from "../../api/client";
+import { useCategories } from "../../contexts/CategoriesContext";
 import type {
   CategoryStatDetail,
   DailyStat,
@@ -18,6 +19,7 @@ export function fmtPct(n: number) {
 }
 
 export default function ReportSection() {
+  const { iconOf } = useCategories();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -174,8 +176,45 @@ export default function ReportSection() {
         )}
       </div>
 
-      {/* 섹션 4-6: Task 9-10에서 추가 */}
-      {categories && fixedVar && topTx && null}
+      {/* 섹션 4: 예산 달성률 */}
+      {categories.length > 0 && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">예산 달성률</p>
+          <div className="flex flex-col gap-3">
+            {categories.map((cat) => {
+              const pct = cat.budget ? (cat.total / cat.budget) * 100 : null;
+              const over = pct !== null && pct > 100;
+              return (
+                <div key={cat.category}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-slate-300 text-xs">
+                      {iconOf(cat.category)} {cat.category}
+                    </span>
+                    {pct !== null ? (
+                      <span className={`text-xs tabular-nums ${over ? "text-red-400" : "text-slate-400"}`}>
+                        {fmt(cat.total)}원 / {fmt(cat.budget!)}원 ({pct.toFixed(0)}%)
+                      </span>
+                    ) : (
+                      <span className="text-slate-600 text-xs">{fmt(cat.total)}원 · 예산 없음</span>
+                    )}
+                  </div>
+                  {pct !== null && (
+                    <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${over ? "bg-red-400" : "bg-indigo-500"}`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 섹션 5-6: Task 10에서 추가 */}
+      {fixedVar && topTx && null}
     </div>
   );
 }
