@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { Account, Budget } from "../api/types";
 import { useCategories } from "../contexts/CategoriesContext";
+import ReportSection from "../components/settings/ReportSection";
 
 // ── 자산 섹션 ──────────────────────────────────────────────
 
@@ -320,7 +321,7 @@ function BudgetSection() {
 
 // ── 메인 설정 페이지 ───────────────────────────────────────
 
-const TAB_LABELS = { assets: "자산", budget: "예산", categories: "카테고리" } as const;
+const TAB_LABELS = { assets: "자산", budget: "예산", categories: "카테고리", report: "리포트" } as const;
 type Tab = keyof typeof TAB_LABELS;
 
 export default function Settings() {
@@ -347,6 +348,7 @@ export default function Settings() {
       {tab === "assets" && <AssetsSection />}
       {tab === "budget" && <BudgetSection />}
       {tab === "categories" && <CategoriesSection />}
+      {tab === "report" && <ReportSection />}
     </div>
   );
 }
