@@ -8,6 +8,14 @@ import type {
   TopTransaction,
 } from "../../api/types";
 
+function fmt(n: number) {
+  return Math.abs(n).toLocaleString("ko-KR");
+}
+
+export function fmtPct(n: number) {
+  return `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
+}
+
 export default function ReportSection() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -50,6 +58,25 @@ export default function ReportSection() {
     else setMonth((m) => m + 1);
   }
 
+  // 저축률 계산
+  const savingsRate = summary && summary.total_income > 0
+    ? ((summary.total_income - summary.total_expense) / summary.total_income) * 100
+    : null;
+
+  // 전월 대비 변화율
+  const expenseDiff = summary && prevSummary && prevSummary.total_expense > 0
+    ? ((summary.total_expense - prevSummary.total_expense) / prevSummary.total_expense) * 100
+    : null;
+  const incomeDiff = summary && prevSummary && prevSummary.total_income > 0
+    ? ((summary.total_income - prevSummary.total_income) / prevSummary.total_income) * 100
+    : null;
+  const prevSavingsRate = prevSummary && prevSummary.total_income > 0
+    ? ((prevSummary.total_income - prevSummary.total_expense) / prevSummary.total_income) * 100
+    : null;
+  const savingsDiff = savingsRate !== null && prevSavingsRate !== null
+    ? savingsRate - prevSavingsRate
+    : null;
+
   return (
     <div className="flex flex-col gap-3 pb-4">
       {/* 월 네비게이션 */}
@@ -63,8 +90,57 @@ export default function ReportSection() {
         <p className="text-slate-500 text-sm text-center py-8">로딩 중...</p>
       )}
 
-      {/* 섹션 1-6: Task 7-10에서 추가 */}
-      {summary && prevSummary && daily && categories && fixedVar && topTx && null}
+      {/* 섹션 1: 이달 요약 */}
+      {summary && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">이달 요약</p>
+          <div className="flex justify-around">
+            <div className="text-center">
+              <p className="text-xs text-slate-400 mb-1">수입</p>
+              <p className="text-emerald-400 tabular-nums font-light text-sm">{fmt(summary.total_income)}원</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-slate-400 mb-1">지출</p>
+              <p className="text-red-400 tabular-nums font-light text-sm">{fmt(summary.total_expense)}원</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-slate-400 mb-1">저축률</p>
+              <p className="text-indigo-400 tabular-nums font-light text-sm">
+                {savingsRate !== null ? `${savingsRate.toFixed(1)}%` : "--"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 섹션 2: 전월 대비 */}
+      {summary && prevSummary && (
+        <div className="mx-4 rounded-2xl bg-slate-800 p-4">
+          <p className="text-slate-500 text-xs mb-3">전월 대비</p>
+          <div className="flex gap-2">
+            {[
+              { label: "지출", diff: expenseDiff, invert: true },
+              { label: "수입", diff: incomeDiff, invert: false },
+              { label: "저축률", diff: savingsDiff, invert: false, unit: "p" },
+            ].map(({ label, diff, invert, unit = "" }) => {
+              const isGood = diff === null ? null : invert ? diff < 0 : diff > 0;
+              const color = diff === null ? "text-slate-500"
+                : isGood ? "text-emerald-400" : "text-red-400";
+              return (
+                <div key={label} className="flex-1 bg-slate-900 rounded-xl p-3 text-center">
+                  <p className="text-xs text-slate-500 mb-1">{label}</p>
+                  <p className={`text-sm font-semibold tabular-nums ${color}`}>
+                    {diff === null ? "--" : `${diff >= 0 ? "▲" : "▼"} ${Math.abs(diff).toFixed(1)}%${unit}`}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 섹션 3-6: Task 8-10에서 추가 */}
+      {daily && categories && fixedVar && topTx && null}
     </div>
   );
 }
