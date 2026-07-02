@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     db_password: str = ""
 
     anthropic_api_key: str = ""
+    review_model: str = "claude-sonnet-5"
 
     @property
     def database_url(self) -> str:

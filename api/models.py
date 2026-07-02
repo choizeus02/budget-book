@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     BigInteger, Boolean, DateTime, Enum, Float,
-    ForeignKey, Integer, String, UniqueConstraint, func,
+    ForeignKey, Integer, String, Text, UniqueConstraint, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -124,3 +124,15 @@ class CategoryCache(Base):
     subcategory: Mapped[str | None] = mapped_column(String(50), nullable=True)
     count: Mapped[int] = mapped_column(Integer, default=1)
     last_used: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class MonthlyReview(Base):
+    __tablename__ = "monthly_reviews"
+    __table_args__ = (UniqueConstraint("year", "month", name="uq_monthly_reviews_year_month"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    month: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    model: Mapped[str] = mapped_column(String(50), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
