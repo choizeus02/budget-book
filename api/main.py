@@ -5,7 +5,7 @@ from fastapi import FastAPI  # noqa
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import init_db
-from routers import accounts, budgets, categories, installments, stats, subscriptions, transactions
+from routers import accounts, budgets, categories, installments, report, stats, subscriptions, transactions
 
 logging.getLogger("uvicorn.access").addFilter(
     type("HealthFilter", (logging.Filter,), {
@@ -36,6 +36,7 @@ app.include_router(stats.router, prefix="/api")
 app.include_router(installments.router, prefix="/api")
 app.include_router(categories.router, prefix="/api")
 app.include_router(subscriptions.router, prefix="/api")
+app.include_router(report.router, prefix="/api")
 
 
 @app.get("/api/health")
