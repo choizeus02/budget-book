@@ -31,6 +31,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - budget-book-api   # frontend nginx.conf의 proxy_pass 호스트명 (운영 k8s 서비스명과 동일)
     develop:
       watch:
         - action: sync+restart
