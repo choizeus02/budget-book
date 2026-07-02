@@ -111,3 +111,27 @@ async def _call_haiku(
     except Exception as e:
         logger.warning(f"Haiku 호출 실패: {e}", exc_info=True)
         return None, None
+
+
+_REVIEW_PROMPT = """당신은 개인 가계부의 재무 코치입니다. 아래 한 달 가계부 데이터를 보고 한국어 총평을 작성하세요.
+규칙:
+- 3~5문장, 부드러운 존댓말
+- 잘한 점 1가지, 주의할 점 1가지, 다음 달 실천 조언 1가지를 포함
+- 반드시 데이터의 수치를 근거로 구체적으로 쓸 것. "지출을 줄이세요" 같은 일반론 금지
+- 마크다운/이모지/목록 없이 순수 문장으로만"""
+
+
+async def generate_monthly_review(payload: str) -> str:
+    """리포트 데이터 텍스트를 받아 월간 총평 생성. 실패 시 예외 전파."""
+    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+    message = await client.messages.create(
+        model=settings.review_model,
+        max_tokens=1500,
+        system=_REVIEW_PROMPT,
+        messages=[{"role": "user", "content": payload}],
+        extra_body={"thinking": {"type": "disabled"}},  # 단순 요약 — thinking 불필요 (SDK 0.40이라 extra_body 사용)
+    )
+    text = "".join(b.text for b in message.content if b.type == "text").strip()
+    if not text:
+        raise RuntimeError("LLM이 빈 응답을 반환했습니다")
+    return text

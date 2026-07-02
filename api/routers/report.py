@@ -4,21 +4,23 @@ import logging
 from collections import defaultdict
 from datetime import date, datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import AsyncSessionLocal
-from models import Budget, Installment, Subscription, Transaction, TransactionType
+from config import settings
+from database import AsyncSessionLocal, get_db
+from models import Budget, Installment, MonthlyReview, Subscription, Transaction, TransactionType
 from routers.stats import yearly_stats
 from schemas import TopTransaction
 from schemas_report import (
     BreakdownRow, BreakdownSub, BudgetGauge, CategoryTrend, FixedItem,
-    FrequentMerchant, Insight, ReportDaily, ReportDow, ReportFixedVariable,
-    ReportPace, ReportResponse, ReportSummary, ReportWeek, SummaryBlock,
-    TrendMonth,
+    FrequentMerchant, Insight, MonthlyReviewResponse, ReportDaily, ReportDow,
+    ReportFixedVariable, ReportPace, ReportResponse, ReportSummary, ReportWeek,
+    SummaryBlock, TrendMonth,
 )
 from services.insights import InsightInput, build_insights, compute_pace, month_progress
+from services.llm import generate_monthly_review
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/report", tags=["report"])
@@ -458,3 +460,57 @@ async def _build_report(year: int, month: int) -> ReportResponse:
 @router.get("", response_model=ReportResponse)
 async def get_report(year: int, month: int):
     return await _build_report(year, month)
+
+
+def _format_review_payload(r: ReportResponse) -> str:
+    lines = [f"{r.year}년 {r.month}월 가계부"]
+    s = r.summary
+    lines.append(f"수입 {s.income:,.0f}원 / 지출 {s.expense:,.0f}원 / 순저축 {s.net:,.0f}원"
+                 + (f" (저축률 {s.savings_rate*100:.0f}%)" if s.savings_rate is not None else ""))
+    lines.append(f"전월: 수입 {s.prev.income:,.0f}원 / 지출 {s.prev.expense:,.0f}원 / 순저축 {s.prev.net:,.0f}원")
+    if r.breakdown:
+        lines.append("카테고리별 지출: " + ", ".join(
+            f"{b.category} {b.total:,.0f}원(전월 {b.prev_total:,.0f}원)" for b in r.breakdown[:8]))
+    if r.budgets:
+        lines.append("예산: " + ", ".join(
+            f"{b.category} {b.spent:,.0f}/{b.budget:,.0f}원({b.used_pct:.0f}%)" for b in r.budgets))
+    if r.fixed_variable:
+        lines.append(f"고정비 {r.fixed_variable.fixed_total:,.0f}원 / 변동비 {r.fixed_variable.variable_total:,.0f}원")
+    if r.insights:
+        lines.append("주요 관찰: " + " / ".join(i.message for i in r.insights[:6]))
+    return "\n".join(lines)
+
+
+@router.get("/review", response_model=MonthlyReviewResponse | None)
+async def get_review(year: int, month: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(MonthlyReview).where(MonthlyReview.year == year, MonthlyReview.month == month)
+    )
+    return result.scalar_one_or_none()
+
+
+@router.post("/review", response_model=MonthlyReviewResponse)
+async def create_review(year: int, month: int, db: AsyncSession = Depends(get_db)):
+    report = await _build_report(year, month)
+    if report.summary is None or (report.summary.income == 0 and report.summary.expense == 0):
+        raise HTTPException(status_code=400, detail="해당 월에 데이터가 없습니다")
+
+    try:
+        content = await generate_monthly_review(_format_review_payload(report))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"총평 생성 실패: {e}")
+
+    result = await db.execute(
+        select(MonthlyReview).where(MonthlyReview.year == year, MonthlyReview.month == month)
+    )
+    row = result.scalar_one_or_none()
+    if row:
+        row.content = content
+        row.model = settings.review_model
+        row.created_at = datetime.now()
+    else:
+        row = MonthlyReview(year=year, month=month, content=content, model=settings.review_model)
+        db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    return row
