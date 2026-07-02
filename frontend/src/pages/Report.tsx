@@ -4,6 +4,8 @@ import type { Report } from "../api/types";
 import InsightsCard from "../components/report/InsightsCard";
 import KpiRow from "../components/report/KpiRow";
 import ReviewCard from "../components/report/ReviewCard";
+import { DailyFlowCard, HeatmapCard } from "../components/report/FlowCards";
+import { CategoryTrendCard, SavingsRateCard, TrendsCard } from "../components/report/TrendCards";
 
 export default function ReportPage() {
   const now = new Date();
@@ -52,7 +54,12 @@ export default function ReportPage() {
             <KpiRow summary={report.summary} pace={report.pace} />
             <InsightsCard insights={report.insights} />
             <ReviewCard year={year} month={month} />
-            {/* ④~⑩ 카드는 Task 8~9에서 추가 */}
+            <DailyFlowCard daily={report.daily} />
+            <HeatmapCard daily={report.daily} year={year} month={month} />
+            <TrendsCard trends={report.trends} />
+            <SavingsRateCard trends={report.trends} />
+            <CategoryTrendCard trend={report.category_trend} />
+            {/* ⑨~⑩ 카드는 Task 9에서 추가 */}
           </div>
         )}
       </div>
