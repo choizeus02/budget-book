@@ -9,6 +9,8 @@ import type {
   FixedVsVariable,
   Installment,
   MonthlySummary,
+  MonthlyReview,
+  Report,
   SubcategoryItem,
   Subscription,
   TopTransaction,
@@ -133,5 +135,14 @@ export const api = {
       request<DowStat[]>(`/stats/day-of-week?year=${year}&month=${month}`),
     uncategorized: (year: number, month: number) =>
       request<UncategorizedStat>(`/stats/uncategorized?year=${year}&month=${month}`),
+  },
+
+  report: {
+    get: (year: number, month: number) =>
+      request<Report>(`/report?year=${year}&month=${month}`),
+    getReview: (year: number, month: number) =>
+      request<MonthlyReview | null>(`/report/review?year=${year}&month=${month}`),
+    generateReview: (year: number, month: number) =>
+      request<MonthlyReview>(`/report/review?year=${year}&month=${month}`, { method: "POST" }),
   },
 };

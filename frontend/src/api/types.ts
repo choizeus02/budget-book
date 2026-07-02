@@ -149,3 +149,61 @@ export interface UncategorizedStat {
   uncategorized_count: number;
   ratio: number;
 }
+
+// --- Report v2 ---
+
+export interface SummaryBlock {
+  income: number; expense: number; net: number; savings_rate: number | null;
+}
+export interface ReportSummary extends SummaryBlock { prev: SummaryBlock; }
+export interface ReportPace {
+  spent_so_far: number; projected: number | null; daily_avg: number; prev_daily_avg: number;
+}
+export interface Insight { type: string; severity: "good" | "info" | "warn"; message: string; }
+export interface ReportDaily {
+  day: number; total: number; cumulative: number; prev_cumulative: number | null;
+}
+export interface TrendMonth {
+  year: number; month: number; income: number; expense: number; net: number; savings_rate: number | null;
+}
+export interface CategoryTrend {
+  categories: string[];
+  series: Array<Record<string, number | string>>; // { ym: "2026-07", <카테고리>: 금액 }
+}
+export interface BreakdownSub { subcategory: string; total: number; count: number; }
+export interface BreakdownRow {
+  category: string; total: number; ratio: number; prev_total: number;
+  diff_pct: number | null; budget: number | null; budget_used: number | null;
+  subcategories: BreakdownSub[];
+}
+export interface FixedItem { name: string; amount: number; kind: "subscription" | "installment"; }
+export interface ReportFixedVariable {
+  fixed_total: number; variable_total: number; fixed_ratio: number; variable_ratio: number;
+  items: FixedItem[];
+}
+export interface ReportDow { dow: number; total: number; count: number; avg: number; }
+export interface ReportWeek { week: number; total: number; }
+export interface FrequentMerchant { description: string; count: number; total: number; }
+export interface BudgetGauge {
+  category: string; budget: number; spent: number; used_pct: number; ideal_pct: number;
+}
+export interface MonthlyReview {
+  year: number; month: number; content: string; model: string; created_at: string;
+}
+export interface Report {
+  year: number; month: number;
+  summary: ReportSummary | null;
+  pace: ReportPace | null;
+  insights: Insight[] | null;
+  daily: ReportDaily[] | null;
+  trends: TrendMonth[] | null;
+  category_trend: CategoryTrend | null;
+  breakdown: BreakdownRow[] | null;
+  fixed_variable: ReportFixedVariable | null;
+  dow: ReportDow[] | null;
+  weekly: ReportWeek[] | null;
+  top: TopTransaction[] | null;
+  frequent: FrequentMerchant[] | null;
+  budgets: BudgetGauge[] | null;
+  ytd: YearlySummary | null;
+}
