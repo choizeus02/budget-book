@@ -1,8 +1,9 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import extract, func, or_, select
+from sqlalchemy import and_, extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
@@ -16,6 +17,13 @@ from schemas import (
 router = APIRouter(prefix="/stats", tags=["stats"])
 
 
+def _month_filter(year: int, month: int):
+    """extract() 대신 인덱스를 탈 수 있는 date 범위 조건."""
+    start = datetime(year, month, 1)
+    end = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
+    return and_(Transaction.date >= start, Transaction.date < end)
+
+
 @router.get("/monthly", response_model=MonthlySummary)
 async def monthly_summary(
     year: int,
@@ -24,8 +32,7 @@ async def monthly_summary(
 ):
     stmt = (
         select(Transaction.type, func.sum(Transaction.amount))
-        .where(extract("year", Transaction.date) == year)
-        .where(extract("month", Transaction.date) == month)
+        .where(_month_filter(year, month))
         .group_by(Transaction.type)
     )
     result = await db.execute(stmt)
@@ -34,10 +41,11 @@ async def monthly_summary(
     income = 0.0
     expense = 0.0
     for tx_type, total in rows:
+        # SUM(bigint)은 Decimal로 반환되므로 float로 통일
         if tx_type == TransactionType.income:
-            income = total or 0.0
+            income = float(total or 0)
         else:
-            expense = abs(total or 0.0)
+            expense = abs(float(total or 0))
 
     return MonthlySummary(
         year=year,
@@ -57,8 +65,7 @@ async def by_category(
     # 카테고리별 지출 합계
     stmt = (
         select(Transaction.category, func.sum(Transaction.amount), func.count(Transaction.id))
-        .where(extract("year", Transaction.date) == year)
-        .where(extract("month", Transaction.date) == month)
+        .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
         .group_by(Transaction.category)
         .order_by(func.sum(Transaction.amount))
@@ -94,8 +101,7 @@ async def by_category_detail(
             func.sum(Transaction.amount),
             func.count(Transaction.id),
         )
-        .where(extract("year", Transaction.date) == year)
-        .where(extract("month", Transaction.date) == month)
+        .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
         .group_by(Transaction.category, Transaction.subcategory)
         .order_by(func.sum(Transaction.amount))
@@ -113,7 +119,7 @@ async def by_category_detail(
         key = cat or "기타"
         if key not in cat_order:
             cat_order.append(key)
-        amt = abs(total or 0.0)
+        amt = abs(float(total or 0))
         cat_map[key]["total"] += amt
         cat_map[key]["count"] += count
         cat_map[key]["subcategories"].append(
@@ -143,15 +149,14 @@ async def daily_stats(
             extract("day", Transaction.date).label("day"),
             func.sum(Transaction.amount).label("total"),
         )
-        .where(extract("year", Transaction.date) == year)
-        .where(extract("month", Transaction.date) == month)
+        .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
         .group_by(extract("day", Transaction.date))
         .order_by(extract("day", Transaction.date))
     )
     result = await db.execute(stmt)
     return [
-        DailyStat(day=int(row.day), total=abs(row.total or 0.0))
+        DailyStat(day=int(row.day), total=abs(float(row.total or 0)))
         for row in result.all()
     ]
 
@@ -165,8 +170,7 @@ async def top_transactions(
 ):
     stmt = (
         select(Transaction)
-        .where(extract("year", Transaction.date) == year)
-        .where(extract("month", Transaction.date) == month)
+        .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
         .order_by(Transaction.amount)  # 음수이므로 ASC = 지출 큰 순
         .limit(limit)
@@ -193,8 +197,7 @@ async def fixed_vs_variable(
     db: AsyncSession = Depends(get_db),
 ):
     base_filter = [
-        extract("year", Transaction.date) == year,
-        extract("month", Transaction.date) == month,
+        _month_filter(year, month),
         Transaction.type == TransactionType.expense,
     ]
 
@@ -211,8 +214,8 @@ async def fixed_vs_variable(
         Transaction.installment_id.is_(None),
     )
 
-    fixed_total = abs((await db.execute(fixed_stmt)).scalar() or 0.0)
-    variable_total = abs((await db.execute(variable_stmt)).scalar() or 0.0)
+    fixed_total = abs(float((await db.execute(fixed_stmt)).scalar() or 0))
+    variable_total = abs(float((await db.execute(variable_stmt)).scalar() or 0))
     grand_total = fixed_total + variable_total
 
     if grand_total == 0:
@@ -240,7 +243,8 @@ async def yearly_stats(
             Transaction.type,
             func.sum(Transaction.amount).label("total"),
         )
-        .where(extract("year", Transaction.date) == year)
+        .where(Transaction.date >= datetime(year, 1, 1))
+        .where(Transaction.date < datetime(year + 1, 1, 1))
         .group_by(extract("month", Transaction.date), Transaction.type)
         .order_by(extract("month", Transaction.date))
     )
@@ -251,9 +255,9 @@ async def yearly_stats(
     for row in rows:
         m = int(row.month)
         if row.type == TransactionType.income:
-            month_data[m]["income"] += row.total or 0.0
+            month_data[m]["income"] += float(row.total or 0)
         else:
-            month_data[m]["expense"] += abs(row.total or 0.0)
+            month_data[m]["expense"] += abs(float(row.total or 0))
 
     total_income = sum(v["income"] for v in month_data.values())
     total_expense = sum(v["expense"] for v in month_data.values())
@@ -285,15 +289,14 @@ async def day_of_week_stats(
             func.sum(Transaction.amount).label("total"),
             func.count(Transaction.id).label("count"),
         )
-        .where(extract("year", Transaction.date) == year)
-        .where(extract("month", Transaction.date) == month)
+        .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
         .group_by(extract("dow", Transaction.date))
         .order_by(extract("dow", Transaction.date))
     )
     result = await db.execute(stmt)
     return [
-        DowStat(dow=int(row.dow), total=abs(row.total or 0.0), count=row.count)
+        DowStat(dow=int(row.dow), total=abs(float(row.total or 0)), count=row.count)
         for row in result.all()
     ]
 
@@ -305,8 +308,7 @@ async def uncategorized_stats(
     db: AsyncSession = Depends(get_db),
 ):
     base_filter = [
-        extract("year", Transaction.date) == year,
-        extract("month", Transaction.date) == month,
+        _month_filter(year, month),
         Transaction.type == TransactionType.expense,
     ]
     total_stmt = select(func.count(Transaction.id)).where(*base_filter)

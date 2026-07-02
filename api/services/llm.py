@@ -23,7 +23,7 @@ _PROMPT_TEMPLATE = """한국어 가계부 카테고리 분류기입니다.
 {{"category": "대분류", "subcategory": "중분류"}}"""
 
 
-def _hash(description: str) -> str:
+def hash_description(description: str) -> str:
     return hashlib.sha256(description.strip().lower().encode()).hexdigest()
 
 
@@ -53,7 +53,7 @@ async def classify_category(
     if not description.strip():
         return None, None
 
-    key = _hash(description)
+    key = hash_description(description)
 
     cached = await db.get(CategoryCache, key)
     if cached:

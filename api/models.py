@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     BigInteger, Boolean, DateTime, Enum, Float,
-    ForeignKey, Integer, String, func,
+    ForeignKey, Integer, String, UniqueConstraint, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,7 +38,7 @@ class Account(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     type: Mapped[AccountType] = mapped_column(Enum(AccountType), nullable=False)
-    balance: Mapped[float] = mapped_column(Float, default=0.0)
+    balance: Mapped[int] = mapped_column(BigInteger, default=0)  # KRW 원 단위 정수
     color: Mapped[str] = mapped_column(String(20), default="#6366f1")
     icon: Mapped[str] = mapped_column(String(50), default="💳")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -51,7 +51,7 @@ class Transaction(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
-    amount: Mapped[float] = mapped_column(Float, nullable=False)  # 양수=수입, 음수=지출
+    amount: Mapped[int] = mapped_column(BigInteger, nullable=False)  # KRW 원 단위, 양수=수입, 음수=지출
     description: Mapped[str] = mapped_column(String(500), default="")
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     subcategory: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -59,7 +59,7 @@ class Transaction(Base):
     installment_id: Mapped[int | None] = mapped_column(ForeignKey("installments.id", ondelete="CASCADE"), nullable=True)
     subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id", ondelete="CASCADE"), nullable=True)
     type: Mapped[TransactionType] = mapped_column(Enum(TransactionType), nullable=False)
-    date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -70,10 +70,11 @@ class Transaction(Base):
 
 class Budget(Base):
     __tablename__ = "budgets"
+    __table_args__ = (UniqueConstraint("category", name="uq_budgets_category"),)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     category: Mapped[str] = mapped_column(String(50), nullable=False)
-    monthly_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    monthly_amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
@@ -82,7 +83,7 @@ class Installment(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    total_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    total_amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
     total_months: Mapped[int] = mapped_column(Integer, nullable=False)
     annual_interest_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
     start_year: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -101,7 +102,7 @@ class Subscription(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
     cycle: Mapped[str] = mapped_column(String(10), nullable=False, default="monthly")  # monthly | yearly
     billing_day: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)

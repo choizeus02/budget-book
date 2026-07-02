@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: budget-book-subscription-sync
+  namespace: budget-book
+spec:
+  # 매일 00:10 KST — 앱을 열지 않아도 구독 트랜잭션이 생성되도록
+  schedule: "10 0 * * *"
+  timeZone: Asia/Seoul
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: sync
+              image: curlimages/curl:8.10.1
+              args:
+                - -fsS
+                - -X
+                - POST
+                - http://budget-book-api:8000/api/subscriptions/sync

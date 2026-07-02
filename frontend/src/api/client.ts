@@ -93,6 +93,7 @@ export const api = {
 
   subscriptions: {
     list: () => request<Subscription[]>("/subscriptions"),
+    sync: () => request<void>("/subscriptions/sync", { method: "POST" }),
     create: (body: {
       name: string; amount: number; cycle: string; billing_day: number;
       start_year: number; start_month: number;

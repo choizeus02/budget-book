@@ -34,7 +34,9 @@ async def update_account(
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    for field, value in body.model_dump(exclude_unset=True).items():
+        if value is None:  # 모든 필드가 non-nullable
+            continue
         setattr(account, field, value)
 
     await db.commit()

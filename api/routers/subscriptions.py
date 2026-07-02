@@ -48,12 +48,16 @@ async def _sync_transactions(sub: Subscription, db: AsyncSession) -> None:
 @router.get("", response_model=list[SubscriptionResponse])
 async def list_subscriptions(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Subscription).order_by(Subscription.created_at.desc()))
-    subs = result.scalars().all()
-    for sub in subs:
-        if sub.is_active:
-            await _sync_transactions(sub, db)
+    return result.scalars().all()
+
+
+@router.post("/sync", status_code=204)
+async def sync_subscriptions(db: AsyncSession = Depends(get_db)):
+    """활성 구독의 빠진 월 트랜잭션 생성 (앱 시작 시 프론트 + K8s CronJob이 호출)."""
+    result = await db.execute(select(Subscription).where(Subscription.is_active.is_(True)))
+    for sub in result.scalars().all():
+        await _sync_transactions(sub, db)
     await db.commit()
-    return subs
 
 
 @router.post("", response_model=SubscriptionResponse, status_code=201)
@@ -86,11 +90,14 @@ async def update_subscription(
     if not sub:
         raise HTTPException(status_code=404, detail="Subscription not found")
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    data = body.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        if value is None and field not in ("category", "subcategory"):
+            continue
         setattr(sub, field, value)
 
     # 금액/주기 변경 시 기존 트랜잭션 재생성
-    if any(f in body.model_dump(exclude_none=True) for f in ["amount", "cycle", "billing_day"]):
+    if any(f in data for f in ["amount", "cycle", "billing_day"]):
         existing = await db.execute(
             select(Transaction).where(Transaction.subscription_id == subscription_id)
         )

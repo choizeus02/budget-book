@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { api } from "./api/client";
 import BottomNav from "./components/BottomNav";
 import { CategoriesProvider } from "./contexts/CategoriesContext";
 import AddTransaction from "./pages/AddTransaction";
@@ -9,6 +11,11 @@ import Stats from "./pages/Stats";
 import Transactions from "./pages/Transactions";
 
 export default function App() {
+  // 이번 달 구독 트랜잭션 동기화 (실패해도 화면에는 영향 없음)
+  useEffect(() => {
+    api.subscriptions.sync().catch(() => {});
+  }, []);
+
   return (
     <CategoriesProvider>
     <BrowserRouter basename="/budget">

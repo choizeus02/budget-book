@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models import Category
+from models import Budget, Category, CategoryCache, Installment, Subscription, Transaction
 from schemas import CategoryCreate, CategoryGroup, CategoryUpdate, SubcategoryItem
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -49,12 +49,31 @@ async def create_category(body: CategoryCreate, db: AsyncSession = Depends(get_d
     return SubcategoryItem(id=cat.id, name=cat.name)
 
 
+async def _cascade_rename(cat: Category, new_name: str, db: AsyncSession) -> None:
+    """카테고리 이름 변경 시 문자열로 저장된 참조를 일괄 갱신."""
+    old_name = cat.name
+    if cat.parent_id is None:
+        for model in (Transaction, Installment, Subscription, CategoryCache, Budget):
+            await db.execute(
+                update(model).where(model.category == old_name).values(category=new_name)
+            )
+    else:
+        parent = await db.get(Category, cat.parent_id)
+        for model in (Transaction, Installment, Subscription, CategoryCache):
+            await db.execute(
+                update(model)
+                .where(model.category == parent.name, model.subcategory == old_name)
+                .values(subcategory=new_name)
+            )
+
+
 @router.patch("/{category_id}", response_model=SubcategoryItem)
 async def update_category(category_id: int, body: CategoryUpdate, db: AsyncSession = Depends(get_db)):
     cat = await db.get(Category, category_id)
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
-    if body.name is not None:
+    if body.name is not None and body.name != cat.name:
+        await _cascade_rename(cat, body.name, db)
         cat.name = body.name
     if body.icon is not None:
         cat.icon = body.icon

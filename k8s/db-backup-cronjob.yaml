@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: budget-book-db-backup
+  namespace: budget-book
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: budget-book-db-backup
+  namespace: budget-book
+spec:
+  schedule: "0 3 * * *"
+  timeZone: Asia/Seoul
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-dump
+              image: postgres:17-alpine
+              envFrom:
+                - secretRef:
+                    name: budget-book-secret
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  : "${DB_HOST:=192.168.45.147}"
+                  : "${DB_PORT:=5432}"
+                  : "${DB_NAME:=budget_db}"
+                  : "${DB_USER:=budget_book}"
+                  FILE="/backup/budget_db_$(date +%Y%m%d_%H%M).sql.gz"
+                  PGPASSWORD="$DB_PASSWORD" pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" | gzip > "$FILE"
+                  echo "backup done: $FILE ($(du -h "$FILE" | cut -f1))"
+                  find /backup -name "*.sql.gz" -mtime +30 -delete
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: budget-book-db-backup

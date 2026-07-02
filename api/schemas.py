@@ -11,14 +11,14 @@ from models import AccountType, TransactionType
 class AccountCreate(BaseModel):
     name: str
     type: AccountType
-    balance: float = 0.0
+    balance: int = 0
     color: str = "#6366f1"
     icon: str = "💳"
 
 
 class AccountUpdate(BaseModel):
     name: Optional[str] = None
-    balance: Optional[float] = None
+    balance: Optional[int] = None
     color: Optional[str] = None
     icon: Optional[str] = None
 
@@ -27,7 +27,7 @@ class AccountResponse(BaseModel):
     id: int
     name: str
     type: AccountType
-    balance: float
+    balance: int
     color: str
     icon: str
     created_at: datetime
@@ -39,7 +39,7 @@ class AccountResponse(BaseModel):
 
 class TransactionCreate(BaseModel):
     account_id: Optional[int] = None
-    amount: float
+    amount: int
     description: str = ""
     type: TransactionType
     date: Optional[datetime] = None
@@ -50,7 +50,7 @@ class TransactionUpdate(BaseModel):
     category: Optional[str] = None
     subcategory: Optional[str] = None
     category_confirmed: Optional[bool] = None
-    amount: Optional[float] = None
+    amount: Optional[int] = None
     date: Optional[datetime] = None
     account_id: Optional[int] = None
 
@@ -60,7 +60,7 @@ class TransactionResponse(BaseModel):
     account_id: Optional[int]
     installment_id: Optional[int]
     subscription_id: Optional[int]
-    amount: float
+    amount: int
     description: str
     category: Optional[str]
     subcategory: Optional[str]
@@ -77,7 +77,7 @@ class TransactionResponse(BaseModel):
 
 class InstallmentCreate(BaseModel):
     name: str
-    total_amount: float
+    total_amount: int
     total_months: int
     annual_interest_rate: Optional[float] = None
     start_year: int
@@ -88,7 +88,7 @@ class InstallmentCreate(BaseModel):
 
 class InstallmentUpdate(BaseModel):
     name: Optional[str] = None
-    total_amount: Optional[float] = None
+    total_amount: Optional[int] = None
     total_months: Optional[int] = None
     annual_interest_rate: Optional[float] = None
     start_year: Optional[int] = None
@@ -100,14 +100,14 @@ class InstallmentUpdate(BaseModel):
 class InstallmentResponse(BaseModel):
     id: int
     name: str
-    total_amount: float
+    total_amount: int
     total_months: int
     annual_interest_rate: Optional[float]
     start_year: int
     start_month: int
     category: Optional[str]
     subcategory: Optional[str]
-    monthly_amount: float
+    monthly_amount: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -142,7 +142,7 @@ class CategoryUpdate(BaseModel):
 
 class SubscriptionCreate(BaseModel):
     name: str
-    amount: float
+    amount: int
     cycle: str = "monthly"
     billing_day: int = 1
     start_year: int
@@ -153,7 +153,7 @@ class SubscriptionCreate(BaseModel):
 
 class SubscriptionUpdate(BaseModel):
     name: Optional[str] = None
-    amount: Optional[float] = None
+    amount: Optional[int] = None
     cycle: Optional[str] = None
     billing_day: Optional[int] = None
     category: Optional[str] = None
@@ -164,7 +164,7 @@ class SubscriptionUpdate(BaseModel):
 class SubscriptionResponse(BaseModel):
     id: int
     name: str
-    amount: float
+    amount: int
     cycle: str
     billing_day: int
     category: Optional[str]
@@ -180,13 +180,13 @@ class SubscriptionResponse(BaseModel):
 
 class BudgetCreate(BaseModel):
     category: str
-    monthly_amount: float
+    monthly_amount: int
 
 
 class BudgetResponse(BaseModel):
     id: int
     category: str
-    monthly_amount: float
+    monthly_amount: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -233,7 +233,7 @@ class DailyStat(BaseModel):
 class TopTransaction(BaseModel):
     id: int
     description: str
-    amount: float
+    amount: int
     category: Optional[str]
     subcategory: Optional[str]
     date: datetime

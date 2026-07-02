@@ -95,7 +95,9 @@ async def update_installment(
     if not inst:
         raise HTTPException(status_code=404, detail="Installment not found")
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    for field, value in body.model_dump(exclude_unset=True).items():
+        if value is None and field not in ("category", "subcategory", "annual_interest_rate"):
+            continue
         setattr(inst, field, value)
 
     # 기존 트랜잭션 전체 삭제 후 재생성

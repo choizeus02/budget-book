@@ -1,10 +1,36 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: budget_book
+      POSTGRES_PASSWORD: local
+      POSTGRES_DB: budget_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budget_book -d budget_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
   api:
     build: ./api
     ports:
       - "8000:8000"
     env_file:
       - ./api/.env
+    environment:
+      # 로컬 개발은 항상 로컬 postgres 사용 (NAS 운영 DB 접근 금지)
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: budget_db
+      DB_USER: budget_book
+      DB_PASSWORD: local
+    depends_on:
+      postgres:
+        condition: service_healthy
     develop:
       watch:
         - action: sync+restart
@@ -18,3 +44,5 @@ services:
     depends_on:
       - api
 
+volumes:
+  pgdata:
