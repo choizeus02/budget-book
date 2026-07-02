@@ -7,7 +7,6 @@ import AddTransaction from "./pages/AddTransaction";
 import Settings from "./pages/Settings";
 import Home from "./pages/Home";
 import Payments from "./pages/Payments";
-import ReportPage from "./pages/Report";
 import Stats from "./pages/Stats";
 import Transactions from "./pages/Transactions";
 
@@ -33,7 +32,6 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/stats" element={<Stats />} />
-                <Route path="/report" element={<ReportPage />} />
                 <Route path="/payments" element={<Payments />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>

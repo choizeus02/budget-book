@@ -4,7 +4,6 @@ const tabs = [
   { to: "/", label: "홈", icon: "🏠" },
   { to: "/transactions", label: "내역", icon: "📋" },
   { to: "/stats", label: "통계", icon: "📊" },
-  { to: "/report", label: "리포트", icon: "📈" },
   { to: "/payments", label: "납부", icon: "💳" },
   { to: "/settings", label: "설정", icon: "⚙️" },
 ];
