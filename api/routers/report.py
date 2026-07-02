@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -458,7 +458,7 @@ async def _build_report(year: int, month: int) -> ReportResponse:
 
 
 @router.get("", response_model=ReportResponse)
-async def get_report(year: int, month: int):
+async def get_report(year: int = Query(ge=2000, le=2100), month: int = Query(ge=1, le=12)):
     return await _build_report(year, month)
 
 
@@ -482,7 +482,7 @@ def _format_review_payload(r: ReportResponse) -> str:
 
 
 @router.get("/review", response_model=MonthlyReviewResponse | None)
-async def get_review(year: int, month: int, db: AsyncSession = Depends(get_db)):
+async def get_review(year: int = Query(ge=2000, le=2100), month: int = Query(ge=1, le=12), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MonthlyReview).where(MonthlyReview.year == year, MonthlyReview.month == month)
     )
@@ -490,7 +490,7 @@ async def get_review(year: int, month: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/review", response_model=MonthlyReviewResponse)
-async def create_review(year: int, month: int, db: AsyncSession = Depends(get_db)):
+async def create_review(year: int = Query(ge=2000, le=2100), month: int = Query(ge=1, le=12), db: AsyncSession = Depends(get_db)):
     report = await _build_report(year, month)
     if report.summary is None or (report.summary.income == 0 and report.summary.expense == 0):
         raise HTTPException(status_code=400, detail="해당 월에 데이터가 없습니다")

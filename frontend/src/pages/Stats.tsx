@@ -30,6 +30,7 @@ export default function Stats() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [monthTx, setMonthTx] = useState<Transaction[] | null>(null);
   const [openSub, setOpenSub] = useState<string | null>(null); // `${cat}|${sub}`
+  const [txLoading, setTxLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -59,8 +60,15 @@ export default function Stats() {
     const key = `${cat}|${sub}`;
     if (openSub === key) { setOpenSub(null); return; }
     setOpenSub(key);
-    if (monthTx === null) {
-      setMonthTx(await api.transactions.list(year, month));
+    if (monthTx === null && !txLoading) {
+      setTxLoading(true);
+      try {
+        setMonthTx(await api.transactions.list(year, month));
+      } catch {
+        setOpenSub(null);
+      } finally {
+        setTxLoading(false);
+      }
     }
   }
 
