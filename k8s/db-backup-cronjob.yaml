@@ -32,6 +32,10 @@ spec:
               envFrom:
                 - secretRef:
                     name: budget-book-secret
+              env:
+                # 백업 파일명 타임스탬프가 KST로 찍히도록
+                - name: TZ
+                  value: Asia/Seoul
               command:
                 - /bin/sh
                 - -c
