@@ -6,6 +6,11 @@ import KpiRow from "../components/report/KpiRow";
 import ReviewCard from "../components/report/ReviewCard";
 import { DailyFlowCard, HeatmapCard } from "../components/report/FlowCards";
 import { CategoryTrendCard, SavingsRateCard, TrendsCard } from "../components/report/TrendCards";
+import BudgetCard from "../components/report/BudgetCard";
+import { CategoryTableCard, DonutCard, FixedVarCard } from "../components/report/CompositionCards";
+import { DowCard, WeeklyCard } from "../components/report/PatternCards";
+import { FrequentCard, TopCard } from "../components/report/RecordCards";
+import YtdCard from "../components/report/YtdCard";
 
 export default function ReportPage() {
   const now = new Date();
@@ -59,7 +64,15 @@ export default function ReportPage() {
             <TrendsCard trends={report.trends} />
             <SavingsRateCard trends={report.trends} />
             <CategoryTrendCard trend={report.category_trend} />
-            {/* ⑨~⑩ 카드는 Task 9에서 추가 */}
+            <DonutCard breakdown={report.breakdown} />
+            <CategoryTableCard breakdown={report.breakdown} />
+            <FixedVarCard fv={report.fixed_variable} />
+            <DowCard dow={report.dow} />
+            <WeeklyCard weekly={report.weekly} />
+            <TopCard top={report.top} />
+            <FrequentCard frequent={report.frequent} />
+            <BudgetCard budgets={report.budgets} />
+            <YtdCard ytd={report.ytd} />
           </div>
         )}
       </div>
