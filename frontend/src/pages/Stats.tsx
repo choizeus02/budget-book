@@ -7,7 +7,7 @@ import {
   Tooltip,
 } from "recharts";
 import { api } from "../api/client";
-import type { CategoryStatDetail, MonthlySummary } from "../api/types";
+import type { CategoryStatDetail, MonthlySummary, Transaction } from "../api/types";
 import { useCategories } from "../contexts/CategoriesContext";
 
 const COLORS = [
@@ -28,6 +28,8 @@ export default function Stats() {
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [categories, setCategories] = useState<CategoryStatDetail[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [monthTx, setMonthTx] = useState<Transaction[] | null>(null);
+  const [openSub, setOpenSub] = useState<string | null>(null); // `${cat}|${sub}`
 
   useEffect(() => {
     Promise.all([
@@ -37,6 +39,8 @@ export default function Stats() {
       setSummary(s);
       setCategories(c);
       setExpanded(null);
+      setMonthTx(null);
+      setOpenSub(null);
     });
   }, [year, month]);
 
@@ -50,6 +54,29 @@ export default function Stats() {
   }
 
   const pieData = categories.map((c) => ({ name: c.category, value: c.total }));
+
+  async function toggleSub(cat: string, sub: string) {
+    const key = `${cat}|${sub}`;
+    if (openSub === key) { setOpenSub(null); return; }
+    setOpenSub(key);
+    if (monthTx === null) {
+      setMonthTx(await api.transactions.list(year, month));
+    }
+  }
+
+  function subTransactions(cat: string, sub: string): Transaction[] {
+    if (!monthTx) return [];
+    return monthTx.filter(t => {
+      if (t.type !== "expense") return false;
+      const catMatch = cat === "기타"
+        ? t.category === null || t.category === "기타"
+        : t.category === cat;
+      const subMatch = sub === "기타"
+        ? t.subcategory === null || t.subcategory === "기타"
+        : t.subcategory === sub;
+      return catMatch && subMatch;
+    });
+  }
 
   return (
     <div className="flex flex-col pb-20 bg-slate-950 min-h-svh">
@@ -156,19 +183,51 @@ export default function Stats() {
                 <div className="border-t border-slate-700 px-4 py-2 flex flex-col gap-2">
                   {cat.subcategories.map((sub) => {
                     const subPercent = cat.total > 0 ? (sub.total / cat.total) * 100 : 0;
+                    const key = `${cat.category}|${sub.subcategory}`;
+                    const subOpen = openSub === key;
+                    const txs = subOpen ? subTransactions(cat.category, sub.subcategory) : [];
                     return (
-                      <div key={sub.subcategory} className="flex items-center gap-2">
-                        <span className="text-slate-400 text-xs w-16 shrink-0">{sub.subcategory}</span>
-                        <div className="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${Math.min(subPercent, 100)}%`,
-                              backgroundColor: COLORS[idx % COLORS.length] + "99",
-                            }}
-                          />
-                        </div>
-                        <span className="text-slate-300 text-xs shrink-0">{fmt(sub.total)}원</span>
+                      <div key={sub.subcategory}>
+                        <button
+                          className="w-full flex items-center gap-2 py-0.5 active:opacity-70"
+                          onClick={() => toggleSub(cat.category, sub.subcategory)}
+                        >
+                          <span className="text-slate-400 text-xs w-16 shrink-0 text-left">
+                            {sub.subcategory}
+                          </span>
+                          <div className="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${Math.min(subPercent, 100)}%`,
+                                backgroundColor: COLORS[idx % COLORS.length] + "99",
+                              }}
+                            />
+                          </div>
+                          <span className="text-slate-300 text-xs shrink-0">{fmt(sub.total)}원</span>
+                          <span className="text-slate-600 text-[10px]">{subOpen ? "▲" : "▼"}</span>
+                        </button>
+                        {subOpen && (
+                          <div className="ml-4 my-1 border-l border-slate-700 pl-3 flex flex-col gap-1">
+                            {monthTx === null ? (
+                              <p className="text-slate-500 text-xs py-1">불러오는 중...</p>
+                            ) : txs.length === 0 ? (
+                              <p className="text-slate-500 text-xs py-1">거래 없음</p>
+                            ) : (
+                              txs.map(t => (
+                                <div key={t.id} className="flex items-center gap-2 text-xs">
+                                  <span className="text-slate-500 w-10 shrink-0">
+                                    {new Date(t.date).getDate()}일
+                                  </span>
+                                  <span className="text-slate-300 flex-1 truncate">
+                                    {t.description || "(설명 없음)"}
+                                  </span>
+                                  <span className="text-slate-400 tabular-nums">{fmt(t.amount)}원</span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
