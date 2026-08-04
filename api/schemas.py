@@ -124,6 +124,7 @@ class CategoryGroup(BaseModel):
     id: int
     name: str
     icon: str
+    excluded_from_expense: bool = False
     subcategories: list[SubcategoryItem]
 
 
@@ -136,6 +137,7 @@ class CategoryCreate(BaseModel):
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     icon: Optional[str] = None
+    excluded_from_expense: Optional[bool] = None
 
 
 # --- Subscription ---

@@ -26,6 +26,7 @@ async def list_categories(db: AsyncSession = Depends(get_db)):
             id=parent.id,
             name=parent.name,
             icon=parent.icon,
+            excluded_from_expense=parent.excluded_from_expense,
             subcategories=[SubcategoryItem(id=s.id, name=s.name) for s in subs],
         ))
     return groups
@@ -45,7 +46,7 @@ async def create_category(body: CategoryCreate, db: AsyncSession = Depends(get_d
     await db.refresh(cat)
 
     if body.parent_id is None:
-        return CategoryGroup(id=cat.id, name=cat.name, icon=cat.icon, subcategories=[])
+        return CategoryGroup(id=cat.id, name=cat.name, icon=cat.icon, excluded_from_expense=cat.excluded_from_expense, subcategories=[])
     return SubcategoryItem(id=cat.id, name=cat.name)
 
 
@@ -77,6 +78,8 @@ async def update_category(category_id: int, body: CategoryUpdate, db: AsyncSessi
         cat.name = body.name
     if body.icon is not None:
         cat.icon = body.icon
+    if body.excluded_from_expense is not None and cat.parent_id is None:
+        cat.excluded_from_expense = body.excluded_from_expense
     await db.commit()
     await db.refresh(cat)
     return SubcategoryItem(id=cat.id, name=cat.name)
