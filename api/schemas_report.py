@@ -9,6 +9,7 @@ from schemas import TopTransaction, YearlySummary
 class SummaryBlock(BaseModel):
     income: float
     expense: float
+    invested: float
     net: float
     savings_rate: Optional[float]
 
@@ -42,6 +43,7 @@ class TrendMonth(BaseModel):
     month: int
     income: float
     expense: float
+    invested: float
     net: float
     savings_rate: Optional[float]
 
@@ -74,11 +76,21 @@ class FixedItem(BaseModel):
     kind: str  # subscription | installment
 
 
+class FixedItemChange(BaseModel):
+    name: str
+    diff: float  # 양수 = 전월보다 증가
+
+
 class ReportFixedVariable(BaseModel):
     fixed_total: float
     variable_total: float
+    invested_total: float
     fixed_ratio: float
     variable_ratio: float
+    invested_ratio: float
+    prev_fixed_total: float
+    variable_3mo_avg: Optional[float]   # 직전 3개월 변동비 평균. 데이터 없으면 None
+    fixed_changes: list[FixedItemChange]
     items: list[FixedItem]
 
 

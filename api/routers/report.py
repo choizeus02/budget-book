@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import extract, func, or_, select
+from sqlalchemy import case, extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
@@ -15,12 +15,13 @@ from routers.stats import yearly_stats
 from schemas import TopTransaction
 from schemas_report import (
     BreakdownRow, BreakdownSub, BudgetGauge, CategoryTrend, FixedItem,
-    FrequentMerchant, Insight, MonthlyReviewResponse, ReportDaily, ReportDow,
-    ReportFixedVariable, ReportPace, ReportResponse, ReportSummary, ReportWeek,
-    SummaryBlock, TrendMonth,
+    FixedItemChange, FrequentMerchant, Insight, MonthlyReviewResponse,
+    ReportDaily, ReportDow, ReportFixedVariable, ReportPace, ReportResponse,
+    ReportSummary, ReportWeek, SummaryBlock, TrendMonth,
 )
 from services.insights import InsightInput, build_insights, compute_pace, month_progress
 from services.llm import generate_monthly_review
+from services.spending import excluded_category_names, not_excluded, only_excluded
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/report", tags=["report"])
@@ -45,21 +46,22 @@ def _shift_ym(year: int, month: int, delta: int) -> tuple[int, int]:
 
 # --- 공통 쿼리 ---
 
-async def _month_sums(db: AsyncSession, year: int, month: int) -> tuple[float, float]:
-    """(income, expense) — expense는 양수."""
+async def _month_sums(db: AsyncSession, year: int, month: int) -> tuple[float, float, float]:
+    """(income, expense, invested) — expense/invested는 양수."""
     start, end = _month_bounds(year, month)
+    excluded = await excluded_category_names(db)
+    bucket = case(
+        (Transaction.type == TransactionType.income, "income"),
+        (only_excluded(excluded), "invested"),
+        else_="expense",
+    ).label("bucket")
     result = await db.execute(
-        select(Transaction.type, func.sum(Transaction.amount))
+        select(bucket, func.sum(Transaction.amount))
         .where(Transaction.date >= start, Transaction.date < end)
-        .group_by(Transaction.type)
+        .group_by(bucket)
     )
-    income = expense = 0.0
-    for tx_type, total in result.all():
-        if tx_type == TransactionType.income:
-            income = float(total or 0)
-        else:
-            expense = abs(float(total or 0))
-    return income, expense
+    sums = {b: float(t or 0) for b, t in result.all()}
+    return sums.get("income", 0.0), abs(sums.get("expense", 0.0)), abs(sums.get("invested", 0.0))
 
 
 def _savings_rate(income: float, expense: float) -> float | None:
@@ -68,21 +70,24 @@ def _savings_rate(income: float, expense: float) -> float | None:
 
 async def _day_totals(db: AsyncSession, year: int, month: int) -> dict[int, float]:
     start, end = _month_bounds(year, month)
+    excluded = await excluded_category_names(db)
     result = await db.execute(
         select(extract("day", Transaction.date).label("day"), func.sum(Transaction.amount))
         .where(Transaction.date >= start, Transaction.date < end,
-               Transaction.type == TransactionType.expense)
+               Transaction.type == TransactionType.expense,
+               not_excluded(excluded))
         .group_by(extract("day", Transaction.date))
     )
     return {int(d): abs(float(t or 0)) for d, t in result.all()}
 
 
-async def _fixed_total(db: AsyncSession, year: int, month: int) -> float:
+async def _fixed_total(db: AsyncSession, year: int, month: int, excluded: list[str]) -> float:
     start, end = _month_bounds(year, month)
     total = (await db.execute(
         select(func.sum(Transaction.amount)).where(
             Transaction.date >= start, Transaction.date < end,
             Transaction.type == TransactionType.expense,
+            not_excluded(excluded),
             or_(Transaction.subscription_id.is_not(None), Transaction.installment_id.is_not(None)),
         )
     )).scalar()
@@ -92,13 +97,15 @@ async def _fixed_total(db: AsyncSession, year: int, month: int) -> float:
 # --- 섹션 함수 (각자 자기 세션으로 실행됨) ---
 
 async def _summary(db: AsyncSession, year: int, month: int) -> ReportSummary:
-    income, expense = await _month_sums(db, year, month)
+    income, expense, invested = await _month_sums(db, year, month)
     py, pm = _prev_ym(year, month)
-    p_income, p_expense = await _month_sums(db, py, pm)
+    p_income, p_expense, p_invested = await _month_sums(db, py, pm)
     return ReportSummary(
-        income=income, expense=expense, net=income - expense,
+        income=income, expense=expense, invested=invested,
+        net=income - expense - invested,
         savings_rate=_savings_rate(income, expense),
-        prev=SummaryBlock(income=p_income, expense=p_expense, net=p_income - p_expense,
+        prev=SummaryBlock(income=p_income, expense=p_expense, invested=p_invested,
+                          net=p_income - p_expense - p_invested,
                           savings_rate=_savings_rate(p_income, p_expense)),
     )
 
@@ -124,29 +131,36 @@ async def _trends(db: AsyncSession, year: int, month: int) -> list[TrendMonth]:
     sy, sm = _shift_ym(year, month, -11)
     start = _month_bounds(sy, sm)[0]
     end = _month_bounds(year, month)[1]
+    excluded = await excluded_category_names(db)
+    bucket = case(
+        (Transaction.type == TransactionType.income, "income"),
+        (only_excluded(excluded), "invested"),
+        else_="expense",
+    ).label("bucket")
     result = await db.execute(
         select(
             extract("year", Transaction.date).label("y"),
             extract("month", Transaction.date).label("m"),
-            Transaction.type,
+            bucket,
             func.sum(Transaction.amount),
         )
         .where(Transaction.date >= start, Transaction.date < end)
-        .group_by(extract("year", Transaction.date), extract("month", Transaction.date), Transaction.type)
+        .group_by(extract("year", Transaction.date), extract("month", Transaction.date), bucket)
     )
-    data: dict[tuple[int, int], dict] = defaultdict(lambda: {"income": 0.0, "expense": 0.0})
-    for y, m, tx_type, total in result.all():
+    data: dict[tuple[int, int], dict] = defaultdict(lambda: {"income": 0.0, "expense": 0.0, "invested": 0.0})
+    for y, m, b, total in result.all():
         key = (int(y), int(m))
-        if tx_type == TransactionType.income:
+        if b == "income":
             data[key]["income"] += float(total or 0)
         else:
-            data[key]["expense"] += abs(float(total or 0))
+            data[key][b] += abs(float(total or 0))
     out = []
     for i in range(-11, 1):
         y, m = _shift_ym(year, month, i)
-        d = data.get((y, m), {"income": 0.0, "expense": 0.0})
+        d = data.get((y, m), {"income": 0.0, "expense": 0.0, "invested": 0.0})
         out.append(TrendMonth(year=y, month=m, income=d["income"], expense=d["expense"],
-                              net=d["income"] - d["expense"],
+                              invested=d["invested"],
+                              net=d["income"] - d["expense"] - d["invested"],
                               savings_rate=_savings_rate(d["income"], d["expense"])))
     return out
 
@@ -155,6 +169,7 @@ async def _category_trend(db: AsyncSession, year: int, month: int) -> CategoryTr
     sy, sm = _shift_ym(year, month, -11)
     start = _month_bounds(sy, sm)[0]
     end = _month_bounds(year, month)[1]
+    excluded = await excluded_category_names(db)
     result = await db.execute(
         select(
             extract("year", Transaction.date).label("y"),
@@ -163,7 +178,8 @@ async def _category_trend(db: AsyncSession, year: int, month: int) -> CategoryTr
             func.sum(Transaction.amount),
         )
         .where(Transaction.date >= start, Transaction.date < end,
-               Transaction.type == TransactionType.expense)
+               Transaction.type == TransactionType.expense,
+               not_excluded(excluded))
         .group_by(extract("year", Transaction.date), extract("month", Transaction.date), Transaction.category)
     )
     totals: dict[str, float] = defaultdict(float)
@@ -186,11 +202,13 @@ async def _category_trend(db: AsyncSession, year: int, month: int) -> CategoryTr
 
 async def _breakdown(db: AsyncSession, year: int, month: int) -> list[BreakdownRow]:
     start, end = _month_bounds(year, month)
+    excluded = await excluded_category_names(db)
     result = await db.execute(
         select(Transaction.category, Transaction.subcategory,
                func.sum(Transaction.amount), func.count(Transaction.id))
         .where(Transaction.date >= start, Transaction.date < end,
-               Transaction.type == TransactionType.expense)
+               Transaction.type == TransactionType.expense,
+               not_excluded(excluded))
         .group_by(Transaction.category, Transaction.subcategory)
     )
     cat_map: dict[str, dict] = defaultdict(lambda: {"total": 0.0, "subs": []})
@@ -205,7 +223,8 @@ async def _breakdown(db: AsyncSession, year: int, month: int) -> list[BreakdownR
     prev_result = await db.execute(
         select(Transaction.category, func.sum(Transaction.amount))
         .where(Transaction.date >= pstart, Transaction.date < pend,
-               Transaction.type == TransactionType.expense)
+               Transaction.type == TransactionType.expense,
+               not_excluded(excluded))
         .group_by(Transaction.category)
     )
     prev_map = {(cat or "기타"): abs(float(t or 0)) for cat, t in prev_result.all()}
@@ -231,46 +250,83 @@ async def _breakdown(db: AsyncSession, year: int, month: int) -> list[BreakdownR
 
 
 async def _fixed_variable(db: AsyncSession, year: int, month: int) -> ReportFixedVariable:
-    start, end = _month_bounds(year, month)
-    fixed = await _fixed_total(db, year, month)
-    _, expense = await _month_sums(db, year, month)
+    excluded = await excluded_category_names(db)
+    _, expense, invested = await _month_sums(db, year, month)
+    fixed = await _fixed_total(db, year, month, excluded)
     variable = max(expense - fixed, 0.0)
-    grand = fixed + variable
+    grand = fixed + variable + invested
 
-    items: list[FixedItem] = []
-    sub_rows = await db.execute(
-        select(Subscription.name, func.sum(Transaction.amount))
-        .join(Subscription, Transaction.subscription_id == Subscription.id)
-        .where(Transaction.date >= start, Transaction.date < end,
-               Transaction.type == TransactionType.expense)
-        .group_by(Subscription.name)
-    )
-    items += [FixedItem(name=n, amount=abs(float(t or 0)), kind="subscription") for n, t in sub_rows.all()]
-    inst_rows = await db.execute(
-        select(Installment.name, func.sum(Transaction.amount))
-        .join(Installment, Transaction.installment_id == Installment.id)
-        .where(Transaction.date >= start, Transaction.date < end,
-               Transaction.type == TransactionType.expense)
-        .group_by(Installment.name)
-    )
-    items += [FixedItem(name=n, amount=abs(float(t or 0)), kind="installment") for n, t in inst_rows.all()]
+    py, pm = _prev_ym(year, month)
+    prev_fixed = await _fixed_total(db, py, pm, excluded)
+
+    # 직전 3개월 변동비 평균 (지출이 없는 달은 표본에서 제외)
+    prev_vars = []
+    for delta in (-3, -2, -1):
+        yy, mm = _shift_ym(year, month, delta)
+        _, e, _ = await _month_sums(db, yy, mm)
+        if e > 0:
+            f = await _fixed_total(db, yy, mm, excluded)
+            prev_vars.append(max(e - f, 0.0))
+    variable_3mo_avg = sum(prev_vars) / len(prev_vars) if prev_vars else None
+
+    async def _items_for(y_: int, m_: int) -> dict[str, float]:
+        s_, e_ = _month_bounds(y_, m_)
+        out: dict[str, float] = {}
+        sub_rows = await db.execute(
+            select(Subscription.name, func.sum(Transaction.amount))
+            .join(Subscription, Transaction.subscription_id == Subscription.id)
+            .where(Transaction.date >= s_, Transaction.date < e_,
+                   Transaction.type == TransactionType.expense,
+                   not_excluded(excluded))
+            .group_by(Subscription.name)
+        )
+        for n, t in sub_rows.all():
+            out[f"subscription:{n}"] = abs(float(t or 0))
+        inst_rows = await db.execute(
+            select(Installment.name, func.sum(Transaction.amount))
+            .join(Installment, Transaction.installment_id == Installment.id)
+            .where(Transaction.date >= s_, Transaction.date < e_,
+                   Transaction.type == TransactionType.expense,
+                   not_excluded(excluded))
+            .group_by(Installment.name)
+        )
+        for n, t in inst_rows.all():
+            out[f"installment:{n}"] = abs(float(t or 0))
+        return out
+
+    cur_items = await _items_for(year, month)
+    prev_items = await _items_for(py, pm)
+
+    items = [FixedItem(name=k.split(":", 1)[1], amount=v, kind=k.split(":", 1)[0])
+             for k, v in cur_items.items()]
     items.sort(key=lambda i: -i.amount)
 
+    changes = [FixedItemChange(name=k.split(":", 1)[1], diff=cur_items.get(k, 0.0) - prev_items.get(k, 0.0))
+               for k in set(cur_items) | set(prev_items)
+               if abs(cur_items.get(k, 0.0) - prev_items.get(k, 0.0)) >= 1_000]
+    changes.sort(key=lambda c: -abs(c.diff))
+
     return ReportFixedVariable(
-        fixed_total=fixed, variable_total=variable,
+        fixed_total=fixed, variable_total=variable, invested_total=invested,
         fixed_ratio=fixed / grand if grand > 0 else 0.0,
         variable_ratio=variable / grand if grand > 0 else 0.0,
+        invested_ratio=invested / grand if grand > 0 else 0.0,
+        prev_fixed_total=prev_fixed,
+        variable_3mo_avg=variable_3mo_avg,
+        fixed_changes=changes[:3],
         items=items,
     )
 
 
 async def _dow(db: AsyncSession, year: int, month: int) -> list[ReportDow]:
     start, end = _month_bounds(year, month)
+    excluded = await excluded_category_names(db)
     result = await db.execute(
         select(extract("dow", Transaction.date).label("dow"),
                func.sum(Transaction.amount), func.count(Transaction.id))
         .where(Transaction.date >= start, Transaction.date < end,
-               Transaction.type == TransactionType.expense)
+               Transaction.type == TransactionType.expense,
+               not_excluded(excluded))
         .group_by(extract("dow", Transaction.date))
         .order_by(extract("dow", Transaction.date))
     )
@@ -292,10 +348,12 @@ async def _weekly(db: AsyncSession, year: int, month: int) -> list[ReportWeek]:
 
 async def _top(db: AsyncSession, year: int, month: int) -> list[TopTransaction]:
     start, end = _month_bounds(year, month)
+    excluded = await excluded_category_names(db)
     result = await db.execute(
         select(Transaction)
         .where(Transaction.date >= start, Transaction.date < end,
-               Transaction.type == TransactionType.expense)
+               Transaction.type == TransactionType.expense,
+               not_excluded(excluded))
         .order_by(Transaction.amount)   # 음수 → ASC가 큰 지출
         .limit(10)
     )
@@ -308,10 +366,12 @@ async def _top(db: AsyncSession, year: int, month: int) -> list[TopTransaction]:
 
 async def _frequent(db: AsyncSession, year: int, month: int) -> list[FrequentMerchant]:
     start, end = _month_bounds(year, month)
+    excluded = await excluded_category_names(db)
     result = await db.execute(
         select(Transaction.description, func.count(Transaction.id), func.sum(Transaction.amount))
         .where(Transaction.date >= start, Transaction.date < end,
                Transaction.type == TransactionType.expense,
+               not_excluded(excluded),
                Transaction.description != "")
         .group_by(Transaction.description)
         .having(func.count(Transaction.id) >= 2)
@@ -324,10 +384,12 @@ async def _frequent(db: AsyncSession, year: int, month: int) -> list[FrequentMer
 
 async def _budgets(db: AsyncSession, year: int, month: int) -> list[BudgetGauge]:
     start, end = _month_bounds(year, month)
+    excluded = await excluded_category_names(db)
     spent_result = await db.execute(
         select(Transaction.category, func.sum(Transaction.amount))
         .where(Transaction.date >= start, Transaction.date < end,
-               Transaction.type == TransactionType.expense)
+               Transaction.type == TransactionType.expense,
+               not_excluded(excluded))
         .group_by(Transaction.category)
     )
     spent_map = {(cat or "기타"): abs(float(t or 0)) for cat, t in spent_result.all()}
@@ -358,6 +420,7 @@ async def _insights(year: int, month: int, summary, daily, trends, breakdown,
     pstart, pend = _month_bounds(py, pm)
 
     async with AsyncSessionLocal() as s:
+        excluded = await excluded_category_names(s)
         known = (
             select(Transaction.description)
             .where(Transaction.date < start, Transaction.description != "")
@@ -367,6 +430,7 @@ async def _insights(year: int, month: int, summary, daily, trends, breakdown,
             select(Transaction.description, func.sum(Transaction.amount))
             .where(Transaction.date >= start, Transaction.date < end,
                    Transaction.type == TransactionType.expense,
+                   not_excluded(excluded),
                    Transaction.description != "",
                    Transaction.description.not_in(known))
             .group_by(Transaction.description)
@@ -376,18 +440,19 @@ async def _insights(year: int, month: int, summary, daily, trends, breakdown,
         new_merchants = [{"description": d, "total": abs(float(t or 0))} for d, t in rows]
 
         base = [Transaction.date >= start, Transaction.date < end,
-                Transaction.type == TransactionType.expense]
+                Transaction.type == TransactionType.expense, not_excluded(excluded)]
         expense_count = (await s.execute(select(func.count(Transaction.id)).where(*base))).scalar() or 0
         uncat_count = (await s.execute(
             select(func.count(Transaction.id)).where(*base, Transaction.category.is_(None))
         )).scalar() or 0
 
-        prev_fixed = await _fixed_total(s, py, pm)
+        prev_fixed = await _fixed_total(s, py, pm, excluded)
 
         prev_spend_days = (await s.execute(
             select(func.count(func.distinct(extract("day", Transaction.date))))
             .where(Transaction.date >= pstart, Transaction.date < pend,
-                   Transaction.type == TransactionType.expense)
+                   Transaction.type == TransactionType.expense,
+                   not_excluded(excluded))
         )).scalar() or 0
 
     today = date.today()
@@ -413,6 +478,11 @@ async def _insights(year: int, month: int, summary, daily, trends, breakdown,
         uncategorized_ratio=uncat_count / expense_count if expense_count > 0 else 0.0,
         expense_count=expense_count,
         savings_rates_12m=[t.savings_rate for t in (trends or [])],
+        invested=summary.invested,
+        variable_total=fixed_variable.variable_total if fixed_variable else 0.0,
+        variable_3mo_avg=fixed_variable.variable_3mo_avg if fixed_variable else None,
+        fixed_changes=[{"name": c.name, "diff": c.diff}
+                       for c in (fixed_variable.fixed_changes if fixed_variable else [])],
     )
     return [Insight(**i) for i in build_insights(inp)]
 
@@ -465,9 +535,9 @@ async def get_report(year: int = Query(ge=2000, le=2100), month: int = Query(ge=
 def _format_review_payload(r: ReportResponse) -> str:
     lines = [f"{r.year}년 {r.month}월 가계부"]
     s = r.summary
-    lines.append(f"수입 {s.income:,.0f}원 / 지출 {s.expense:,.0f}원 / 순저축 {s.net:,.0f}원"
+    lines.append(f"수입 {s.income:,.0f}원 / 지출 {s.expense:,.0f}원 / 저축·투자 {s.invested:,.0f}원 / 남은 돈 {s.net:,.0f}원"
                  + (f" (저축률 {s.savings_rate*100:.0f}%)" if s.savings_rate is not None else ""))
-    lines.append(f"전월: 수입 {s.prev.income:,.0f}원 / 지출 {s.prev.expense:,.0f}원 / 순저축 {s.prev.net:,.0f}원")
+    lines.append(f"전월: 수입 {s.prev.income:,.0f}원 / 지출 {s.prev.expense:,.0f}원 / 저축·투자 {s.prev.invested:,.0f}원 / 남은 돈 {s.prev.net:,.0f}원")
     if r.breakdown:
         lines.append("카테고리별 지출: " + ", ".join(
             f"{b.category} {b.total:,.0f}원(전월 {b.prev_total:,.0f}원)" for b in r.breakdown[:8]))
@@ -475,7 +545,8 @@ def _format_review_payload(r: ReportResponse) -> str:
         lines.append("예산: " + ", ".join(
             f"{b.category} {b.spent:,.0f}/{b.budget:,.0f}원({b.used_pct:.0f}%)" for b in r.budgets))
     if r.fixed_variable:
-        lines.append(f"고정비 {r.fixed_variable.fixed_total:,.0f}원 / 변동비 {r.fixed_variable.variable_total:,.0f}원")
+        fv = r.fixed_variable
+        lines.append(f"고정비 {fv.fixed_total:,.0f}원 / 변동비 {fv.variable_total:,.0f}원 / 저축·투자 {fv.invested_total:,.0f}원")
     if r.insights:
         lines.append("주요 관찰: " + " / ".join(i.message for i in r.insights[:6]))
     return "\n".join(lines)
