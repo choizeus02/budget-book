@@ -110,6 +110,10 @@ export default function Stats() {
             <p className="text-emerald-400 tabular-nums font-light">{fmt(summary.total_income)}원</p>
           </div>
           <div className="text-center">
+            <p className="text-xs text-slate-400 mb-1">저축·투자</p>
+            <p className="text-indigo-400 tabular-nums font-light">{fmt(summary.total_invested)}원</p>
+          </div>
+          <div className="text-center">
             <p className="text-xs text-slate-400 mb-1">순수익</p>
             <p className={`tabular-nums font-light ${summary.net >= 0 ? "text-white" : "text-red-400"}`}>
               {summary.net >= 0 ? "+" : ""}{fmt(summary.net)}원
