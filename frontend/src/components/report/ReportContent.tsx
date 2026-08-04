@@ -61,7 +61,7 @@ export default function ReportContent() {
           <CategoryTrendCard trend={report.category_trend} />
           <DonutCard breakdown={report.breakdown} />
           <CategoryTableCard breakdown={report.breakdown} />
-          <FixedVarCard fv={report.fixed_variable} />
+          <FixedVarCard fv={report.fixed_variable} income={report.summary?.income ?? null} />
           <DowCard dow={report.dow} />
           <WeeklyCard weekly={report.weekly} />
           <TopCard top={report.top} />

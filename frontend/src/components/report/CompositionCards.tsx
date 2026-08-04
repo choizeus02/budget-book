@@ -62,33 +62,67 @@ export function CategoryTableCard({ breakdown }: { breakdown: BreakdownRow[] | n
   );
 }
 
-export function FixedVarCard({ fv }: { fv: ReportFixedVariable | null }) {
+function BucketLine({ dotClass, label, value, note }: {
+  dotClass: string; label: string; value: string; note: string | null;
+}) {
   return (
-    <Card title="고정비 vs 변동비" span="lg:col-span-4">
-      {!fv ? <Empty /> : (
-        <div className="flex flex-col gap-3">
-          <div className="h-3 rounded-full overflow-hidden flex bg-slate-700">
-            <div className="bg-indigo-500" style={{ width: `${fv.fixed_ratio * 100}%` }} />
-            <div className="bg-pink-500" style={{ width: `${fv.variable_ratio * 100}%` }} />
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-indigo-400">고정 {fmt(fv.fixed_total)}원 ({Math.round(fv.fixed_ratio * 100)}%)</span>
-            <span className="text-pink-400">변동 {fmt(fv.variable_total)}원 ({Math.round(fv.variable_ratio * 100)}%)</span>
-          </div>
-          {fv.items.length > 0 && (
-            <ul className="flex flex-col gap-1.5 mt-1">
-              {fv.items.map(item => (
-                <li key={`${item.kind}-${item.name}`} className="flex justify-between text-sm">
-                  <span className="text-slate-300">
-                    {item.kind === "subscription" ? "🔁" : "💳"} {item.name}
-                  </span>
-                  <span className="text-slate-400 tabular-nums">{fmt(item.amount)}원</span>
-                </li>
-              ))}
-            </ul>
-          )}
+    <div className="flex items-baseline gap-2 text-sm">
+      <span className={`w-2 h-2 rounded-full shrink-0 self-center ${dotClass}`} />
+      <span className="text-slate-300 w-16 shrink-0">{label}</span>
+      <span className="text-slate-200 tabular-nums">{value}</span>
+      {note && <span className="text-xs text-slate-500 truncate">{note}</span>}
+    </div>
+  );
+}
+
+export function FixedVarCard({ fv, income }: { fv: ReportFixedVariable | null; income: number | null }) {
+  if (!fv) return <Card title="지출 구성" span="lg:col-span-4"><Empty /></Card>;
+
+  const fixedDiff = fv.fixed_total - fv.prev_fixed_total;
+  const topChange = fv.fixed_changes[0];
+  const fixedNote = Math.abs(fixedDiff) >= 1000
+    ? `전월비 ${fixedDiff > 0 ? "+" : "−"}${fmt(Math.abs(fixedDiff))}원${topChange ? ` (${topChange.name})` : ""}`
+    : "전월과 비슷";
+
+  let variableNote: string | null = null;
+  if (fv.variable_3mo_avg !== null && fv.variable_3mo_avg > 0) {
+    const pct = Math.round(((fv.variable_total - fv.variable_3mo_avg) / fv.variable_3mo_avg) * 100);
+    variableNote = `3개월 평균 ${fmt(fv.variable_3mo_avg)}원 대비 ${pct > 0 ? "+" : ""}${pct}%`;
+  }
+
+  const investedNote = income && income > 0 && fv.invested_total > 0
+    ? `수입의 ${Math.round((fv.invested_total / income) * 100)}%`
+    : null;
+
+  return (
+    <Card title="지출 구성" span="lg:col-span-4">
+      <div className="flex flex-col gap-3">
+        <div className="h-3 rounded-full overflow-hidden flex bg-slate-700">
+          <div className="bg-indigo-500" style={{ width: `${fv.fixed_ratio * 100}%` }} />
+          <div className="bg-pink-500" style={{ width: `${fv.variable_ratio * 100}%` }} />
+          <div className="bg-emerald-500" style={{ width: `${fv.invested_ratio * 100}%` }} />
         </div>
-      )}
+        <div className="flex flex-col gap-1.5">
+          <BucketLine dotClass="bg-indigo-500" label="고정비"
+            value={`${fmt(fv.fixed_total)}원 (${Math.round(fv.fixed_ratio * 100)}%)`} note={fixedNote} />
+          <BucketLine dotClass="bg-pink-500" label="변동비"
+            value={`${fmt(fv.variable_total)}원 (${Math.round(fv.variable_ratio * 100)}%)`} note={variableNote} />
+          <BucketLine dotClass="bg-emerald-500" label="저축·투자"
+            value={`${fmt(fv.invested_total)}원 (${Math.round(fv.invested_ratio * 100)}%)`} note={investedNote} />
+        </div>
+        {fv.items.length > 0 && (
+          <ul className="flex flex-col gap-1.5 mt-1 pt-2 border-t border-slate-700/50">
+            {fv.items.map(item => (
+              <li key={`${item.kind}-${item.name}`} className="flex justify-between text-sm">
+                <span className="text-slate-300">
+                  {item.kind === "subscription" ? "🔁" : "💳"} {item.name}
+                </span>
+                <span className="text-slate-400 tabular-nums">{fmt(item.amount)}원</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </Card>
   );
 }

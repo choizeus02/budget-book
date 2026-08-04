@@ -36,10 +36,10 @@ export default function KpiRow({ summary, pace }: {
             sub={<Delta cur={summary.expense} prev={summary.prev.expense} invert />} />
       <Tile label="총수입" value={`${fmt(summary.income)}원`} color="text-emerald-400"
             sub={<Delta cur={summary.income} prev={summary.prev.income} />} />
-      <Tile label="순저축" value={`${signed(summary.net)}원`}
+      <Tile label="남은 돈" value={`${signed(summary.net)}원`}
             color={summary.net >= 0 ? "text-white" : "text-red-400"}
             sub={<span className="text-xs text-slate-500">
-              저축률 {rate !== null ? `${Math.round(rate * 100)}%` : "-"}
+              저축·투자 {fmt(summary.invested)}원{rate !== null ? ` · 저축률 ${Math.round(rate * 100)}%` : ""}
             </span>} />
       <Tile label={pace?.projected !== null && pace?.projected !== undefined ? "월말 예상 지출" : "일평균 지출"}
             value={pace ? `${fmt(pace.projected ?? pace.daily_avg)}원` : "-"}
