@@ -66,6 +66,7 @@ export interface MonthlySummary {
   month: number;
   total_income: number;
   total_expense: number;
+  total_invested: number;
   net: number;
 }
 
@@ -99,6 +100,7 @@ export interface CategoryGroup {
   id: number;
   name: string;
   icon: string;
+  excluded_from_expense: boolean;
   subcategories: SubcategoryItem[];
 }
 
@@ -127,12 +129,14 @@ export interface MonthlyEntry {
   month: number;
   income: number;
   expense: number;
+  invested: number;
 }
 
 export interface YearlySummary {
   year: number;
   total_income: number;
   total_expense: number;
+  total_invested: number;
   net: number;
   savings_rate: number | null;
   months: MonthlyEntry[];
@@ -153,7 +157,7 @@ export interface UncategorizedStat {
 // --- Report v2 ---
 
 export interface SummaryBlock {
-  income: number; expense: number; net: number; savings_rate: number | null;
+  income: number; expense: number; invested: number; net: number; savings_rate: number | null;
 }
 export interface ReportSummary extends SummaryBlock { prev: SummaryBlock; }
 export interface ReportPace {
@@ -164,7 +168,7 @@ export interface ReportDaily {
   day: number; total: number; cumulative: number; prev_cumulative: number | null;
 }
 export interface TrendMonth {
-  year: number; month: number; income: number; expense: number; net: number; savings_rate: number | null;
+  year: number; month: number; income: number; expense: number; invested: number; net: number; savings_rate: number | null;
 }
 export interface CategoryTrend {
   categories: string[];
@@ -177,8 +181,12 @@ export interface BreakdownRow {
   subcategories: BreakdownSub[];
 }
 export interface FixedItem { name: string; amount: number; kind: "subscription" | "installment"; }
+export interface FixedItemChange { name: string; diff: number; }
 export interface ReportFixedVariable {
-  fixed_total: number; variable_total: number; fixed_ratio: number; variable_ratio: number;
+  fixed_total: number; variable_total: number; invested_total: number;
+  fixed_ratio: number; variable_ratio: number; invested_ratio: number;
+  prev_fixed_total: number; variable_3mo_avg: number | null;
+  fixed_changes: FixedItemChange[];
   items: FixedItem[];
 }
 export interface ReportDow { dow: number; total: number; count: number; avg: number; }

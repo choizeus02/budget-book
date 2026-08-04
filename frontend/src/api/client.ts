@@ -110,7 +110,7 @@ export const api = {
     list: () => request<CategoryGroup[]>("/categories"),
     create: (body: { name: string; icon: string; parent_id?: number | null }) =>
       request<CategoryGroup | SubcategoryItem>("/categories", { method: "POST", body: JSON.stringify(body) }),
-    update: (id: number, body: { name?: string; icon?: string }) =>
+    update: (id: number, body: { name?: string; icon?: string; excluded_from_expense?: boolean }) =>
       request<SubcategoryItem>(`/categories/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     delete: (id: number) =>
       request<void>(`/categories/${id}`, { method: "DELETE" }),
