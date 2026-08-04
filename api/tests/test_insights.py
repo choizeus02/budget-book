@@ -13,6 +13,8 @@ def base_input(**over):
         fixed_total=100_000, prev_fixed_total=100_000,
         uncategorized_ratio=0.0, expense_count=20,
         savings_rates_12m=[],
+        invested=0.0, variable_total=1_400_000, variable_3mo_avg=None,
+        fixed_changes=[],
     )
     d.update(over)
     return InsightInput(**d)
@@ -124,3 +126,52 @@ def test_savings_turnaround_and_record():
     assert any(i["type"] == "savings_turnaround" for i in build_insights(d))
     d = base_input(savings_rates_12m=[0.1, 0.2, 0.15, 0.5], income=3_000_000, expense=1_500_000)
     assert any(i["type"] == "savings_record" for i in build_insights(d))
+
+
+# --- 신규: 고정비 변화 주원인 / 변동비 페이스 / 저축·투자 ---
+
+def test_fixed_change_includes_cause_item():
+    d = base_input(fixed_total=150_000, prev_fixed_total=100_000,
+                   fixed_changes=[{"name": "유튜브 프리미엄", "diff": 50_000}])
+    msgs = [i["message"] for i in build_insights(d) if i["type"] == "fixed_change"]
+    assert len(msgs) == 1
+    assert "유튜브 프리미엄" in msgs[0]
+
+
+def test_fixed_change_without_cause_still_works():
+    d = base_input(fixed_total=150_000, prev_fixed_total=100_000, fixed_changes=[])
+    assert "fixed_change" in types_of(build_insights(d))
+
+
+def test_variable_pace_over_warns():
+    # 7/15 → 진행률 15/31 ≈ 0.484, 기대치 = 1,000,000 × 0.484 ≈ 483,871
+    d = base_input(variable_total=700_000, variable_3mo_avg=1_000_000)
+    pace = [i for i in build_insights(d) if i["type"] == "variable_pace"]
+    assert len(pace) == 1 and pace[0]["severity"] == "warn"
+
+
+def test_variable_pace_under_is_good():
+    d = base_input(variable_total=300_000, variable_3mo_avg=1_000_000)
+    pace = [i for i in build_insights(d) if i["type"] == "variable_pace"]
+    assert len(pace) == 1 and pace[0]["severity"] == "good"
+
+
+def test_variable_pace_needs_history_and_progress():
+    # 평균 없음 → 없음
+    d = base_input(variable_total=700_000, variable_3mo_avg=None)
+    assert "variable_pace" not in types_of(build_insights(d))
+    # 월초(진행률 < 0.3) → 없음
+    d = base_input(today=date(2026, 7, 3), variable_total=700_000, variable_3mo_avg=1_000_000)
+    assert "variable_pace" not in types_of(build_insights(d))
+
+
+def test_invested_ratio_message():
+    d = base_input(invested=1_500_000, income=3_000_000)
+    inv = [i for i in build_insights(d) if i["type"] == "invested"]
+    assert len(inv) == 1 and inv[0]["severity"] == "good"
+    assert "50%" in inv[0]["message"]
+
+
+def test_no_invested_no_message():
+    d = base_input(invested=0.0)
+    assert "invested" not in types_of(build_insights(d))

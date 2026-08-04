@@ -30,6 +30,7 @@ class Category(Base):
     icon: Mapped[str] = mapped_column(String(10), nullable=False, default="📌")
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    excluded_from_expense: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
 
 
 class Account(Base):

@@ -126,7 +126,7 @@ function AssetsSection() {
 function CategoriesSection() {
   const { categories, refresh } = useCategories();
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", icon: "" });
+  const [editForm, setEditForm] = useState({ name: "", icon: "", excluded: false });
   const [addingSubOf, setAddingSubOf] = useState<number | null>(null);
   const [addingSubName, setAddingSubName] = useState("");
   const [showAddParent, setShowAddParent] = useState(false);
@@ -138,7 +138,9 @@ function CategoriesSection() {
   }
 
   async function handleUpdateCategory(id: number) {
-    await api.categories.update(id, { name: editForm.name, icon: editForm.icon });
+    await api.categories.update(id, {
+      name: editForm.name, icon: editForm.icon, excluded_from_expense: editForm.excluded,
+    });
     setEditingId(null);
     refresh();
   }
@@ -166,19 +168,32 @@ function CategoriesSection() {
         <div key={cat.id} className="bg-slate-800 rounded-xl overflow-hidden">
           {/* 대분류 행 */}
           {editingId === cat.id ? (
-            <div className="px-4 py-3 flex gap-2 items-center">
-              <input value={editForm.icon} onChange={(e) => setEditForm((f) => ({ ...f, icon: e.target.value }))}
-                className="w-10 bg-slate-700 text-white text-center rounded-lg py-1.5 text-sm outline-none" />
-              <input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                className="flex-1 bg-slate-700 text-white rounded-lg px-3 py-1.5 text-sm outline-none" />
-              <button onClick={() => handleUpdateCategory(cat.id)} className="text-indigo-400 text-sm">저장</button>
-              <button onClick={() => setEditingId(null)} className="text-slate-500 text-sm">취소</button>
+            <div className="px-4 py-3 flex flex-col gap-2">
+              <div className="flex gap-2 items-center">
+                <input value={editForm.icon} onChange={(e) => setEditForm((f) => ({ ...f, icon: e.target.value }))}
+                  className="w-10 bg-slate-700 text-white text-center rounded-lg py-1.5 text-sm outline-none" />
+                <input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  className="flex-1 bg-slate-700 text-white rounded-lg px-3 py-1.5 text-sm outline-none" />
+                <button onClick={() => handleUpdateCategory(cat.id)} className="text-indigo-400 text-sm">저장</button>
+                <button onClick={() => setEditingId(null)} className="text-slate-500 text-sm">취소</button>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-slate-400">
+                <input type="checkbox" checked={editForm.excluded}
+                  onChange={(e) => setEditForm((f) => ({ ...f, excluded: e.target.checked }))}
+                  className="accent-indigo-500" />
+                지출 통계에서 제외 (저축·투자처럼 소비가 아닌 이체)
+              </label>
             </div>
           ) : (
             <div className="px-4 py-3 flex items-center gap-2">
               <span className="text-base">{cat.icon}</span>
-              <span className="text-white text-sm font-medium flex-1">{cat.name}</span>
-              <button onClick={() => { setEditingId(cat.id); setEditForm({ name: cat.name, icon: cat.icon }); }}
+              <span className="text-white text-sm font-medium flex-1">
+                {cat.name}
+                {cat.excluded_from_expense && (
+                  <span className="ml-2 text-[10px] text-indigo-400 border border-indigo-500/40 rounded px-1 py-0.5">통계 제외</span>
+                )}
+              </span>
+              <button onClick={() => { setEditingId(cat.id); setEditForm({ name: cat.name, icon: cat.icon, excluded: cat.excluded_from_expense }); }}
                 className="text-slate-500 text-xs active:text-indigo-400 px-2">수정</button>
               <button onClick={() => handleDeleteCategory(cat.id)}
                 className="text-slate-600 text-xs active:text-red-400">삭제</button>

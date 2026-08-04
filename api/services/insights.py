@@ -11,6 +11,8 @@ NEW_MERCHANT_MIN = 30_000
 FIXED_CHANGE_MIN = 10_000
 UNCAT_RATIO = 0.20
 UNCAT_MIN_COUNT = 5
+VARIABLE_PACE_PCT = 0.10       # 3개월 평균 페이스 대비 ±10% 이상
+VARIABLE_MIN_PROGRESS = 0.3    # 월 진행률 30% 이후에만 (월초 노이즈 방지)
 
 
 def _fmt(n: float) -> str:
@@ -58,6 +60,10 @@ class InsightInput:
     uncategorized_ratio: float
     expense_count: int
     savings_rates_12m: list  # 이번 달이 마지막 원소. None 포함 가능
+    invested: float          # 이번 달 저축·투자 이체액 (양수)
+    variable_total: float
+    variable_3mo_avg: float | None
+    fixed_changes: list      # [{name, diff}] — |diff| 큰 순
 
 
 def build_insights(d: InsightInput) -> list[dict]:
@@ -106,15 +112,39 @@ def build_insights(d: InsightInput) -> list[dict]:
         add("no_spend_days", "good",
             f"무지출일이 늘었어요 — 이번 달 {d.no_spend_days}일 (전월 {d.prev_no_spend_days}일)")
 
-    # 6. 고정비 변화
+    # 6. 고정비 변화 (주원인 항목 포함)
     fixed_diff = d.fixed_total - d.prev_fixed_total
     if abs(fixed_diff) >= FIXED_CHANGE_MIN:
+        cause = ""
+        if d.fixed_changes:
+            top = d.fixed_changes[0]
+            sign = "+" if top["diff"] > 0 else "−"
+            cause = f" — 주원인: {top['name']} {sign}{_fmt(abs(top['diff']))}원"
         if fixed_diff > 0:
             add("fixed_change", "warn",
-                f"고정비(구독·할부)가 전월보다 {_fmt(fixed_diff)}원 늘었어요")
+                f"고정비(구독·할부)가 전월보다 {_fmt(fixed_diff)}원 늘었어요{cause}")
         else:
             add("fixed_change", "good",
-                f"고정비(구독·할부)가 전월보다 {_fmt(abs(fixed_diff))}원 줄었어요")
+                f"고정비(구독·할부)가 전월보다 {_fmt(abs(fixed_diff))}원 줄었어요{cause}")
+
+    # 6-2. 변동비 페이스 (최근 3개월 평균을 월 진행률로 보정해서 비교)
+    progress = month_progress(d.year, d.month, d.today)
+    if d.variable_3mo_avg and d.variable_3mo_avg > 0 and progress >= VARIABLE_MIN_PROGRESS:
+        expected = d.variable_3mo_avg * progress
+        diff_ratio = (d.variable_total - expected) / expected
+        if abs(diff_ratio) >= VARIABLE_PACE_PCT:
+            pct = round(abs(diff_ratio) * 100)
+            if diff_ratio > 0:
+                add("variable_pace", "warn",
+                    f"변동비가 최근 3개월 페이스보다 {pct}% 많아요 (기대 {_fmt(expected)}원 → 현재 {_fmt(d.variable_total)}원)")
+            else:
+                add("variable_pace", "good",
+                    f"변동비가 최근 3개월 페이스보다 {pct}% 적어요 (기대 {_fmt(expected)}원 → 현재 {_fmt(d.variable_total)}원)")
+
+    # 6-3. 저축·투자
+    if d.income > 0 and d.invested > 0:
+        add("invested", "good",
+            f"수입의 {round(d.invested / d.income * 100)}%를 저축·투자로 옮겼어요 ({_fmt(d.invested)}원)")
 
     # 7. 미분류 경고
     if d.uncategorized_ratio >= UNCAT_RATIO and d.expense_count >= UNCAT_MIN_COUNT:
