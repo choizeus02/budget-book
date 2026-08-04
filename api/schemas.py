@@ -199,6 +199,7 @@ class MonthlySummary(BaseModel):
     month: int
     total_income: float
     total_expense: float
+    total_invested: float
     net: float
 
 
@@ -250,12 +251,14 @@ class MonthlyEntry(BaseModel):
     month: int
     income: float
     expense: float
+    invested: float
 
 
 class YearlySummary(BaseModel):
     year: int
     total_income: float
     total_expense: float
+    total_invested: float
     net: float
     savings_rate: Optional[float]
     months: list[MonthlyEntry]

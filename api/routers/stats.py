@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, extract, func, or_, select
+from sqlalchemy import and_, case, extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
@@ -13,6 +13,7 @@ from schemas import (
     MonthlyEntry, MonthlySummary, SubcategoryStat, TopTransaction,
     UncategorizedStat, YearlySummary,
 )
+from services.spending import excluded_category_names, not_excluded, only_excluded
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -30,29 +31,32 @@ async def monthly_summary(
     month: int,
     db: AsyncSession = Depends(get_db),
 ):
+    excluded = await excluded_category_names(db)
+    bucket = case(
+        (Transaction.type == TransactionType.income, "income"),
+        (only_excluded(excluded), "invested"),
+        else_="expense",
+    ).label("bucket")
     stmt = (
-        select(Transaction.type, func.sum(Transaction.amount))
+        select(bucket, func.sum(Transaction.amount))
         .where(_month_filter(year, month))
-        .group_by(Transaction.type)
+        .group_by(bucket)
     )
     result = await db.execute(stmt)
-    rows = result.all()
+    # SUM(bigint)은 Decimal로 반환되므로 float로 통일
+    sums = {b: float(total or 0) for b, total in result.all()}
 
-    income = 0.0
-    expense = 0.0
-    for tx_type, total in rows:
-        # SUM(bigint)은 Decimal로 반환되므로 float로 통일
-        if tx_type == TransactionType.income:
-            income = float(total or 0)
-        else:
-            expense = abs(float(total or 0))
+    income = sums.get("income", 0.0)
+    expense = abs(sums.get("expense", 0.0))
+    invested = abs(sums.get("invested", 0.0))
 
     return MonthlySummary(
         year=year,
         month=month,
         total_income=income,
         total_expense=expense,
-        net=income - expense,
+        total_invested=invested,
+        net=income - expense - invested,
     )
 
 
@@ -63,10 +67,12 @@ async def by_category(
     db: AsyncSession = Depends(get_db),
 ):
     # 카테고리별 지출 합계
+    excluded = await excluded_category_names(db)
     stmt = (
         select(Transaction.category, func.sum(Transaction.amount), func.count(Transaction.id))
         .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
+        .where(not_excluded(excluded))
         .group_by(Transaction.category)
         .order_by(func.sum(Transaction.amount))
     )
@@ -94,6 +100,7 @@ async def by_category_detail(
     month: int,
     db: AsyncSession = Depends(get_db),
 ):
+    excluded = await excluded_category_names(db)
     stmt = (
         select(
             Transaction.category,
@@ -103,6 +110,7 @@ async def by_category_detail(
         )
         .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
+        .where(not_excluded(excluded))
         .group_by(Transaction.category, Transaction.subcategory)
         .order_by(func.sum(Transaction.amount))
     )
@@ -144,6 +152,7 @@ async def daily_stats(
     month: int,
     db: AsyncSession = Depends(get_db),
 ):
+    excluded = await excluded_category_names(db)
     stmt = (
         select(
             extract("day", Transaction.date).label("day"),
@@ -151,6 +160,7 @@ async def daily_stats(
         )
         .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
+        .where(not_excluded(excluded))
         .group_by(extract("day", Transaction.date))
         .order_by(extract("day", Transaction.date))
     )
@@ -168,10 +178,12 @@ async def top_transactions(
     limit: int = Query(default=5, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
 ):
+    excluded = await excluded_category_names(db)
     stmt = (
         select(Transaction)
         .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
+        .where(not_excluded(excluded))
         .order_by(Transaction.amount)  # 음수이므로 ASC = 지출 큰 순
         .limit(limit)
     )
@@ -196,9 +208,11 @@ async def fixed_vs_variable(
     month: int,
     db: AsyncSession = Depends(get_db),
 ):
+    excluded = await excluded_category_names(db)
     base_filter = [
         _month_filter(year, month),
         Transaction.type == TransactionType.expense,
+        not_excluded(excluded),
     ]
 
     fixed_stmt = select(func.sum(Transaction.amount)).where(
@@ -237,41 +251,52 @@ async def yearly_stats(
     year: int,
     db: AsyncSession = Depends(get_db),
 ):
+    excluded = await excluded_category_names(db)
+    bucket = case(
+        (Transaction.type == TransactionType.income, "income"),
+        (only_excluded(excluded), "invested"),
+        else_="expense",
+    ).label("bucket")
     stmt = (
         select(
             extract("month", Transaction.date).label("month"),
-            Transaction.type,
+            bucket,
             func.sum(Transaction.amount).label("total"),
         )
         .where(Transaction.date >= datetime(year, 1, 1))
         .where(Transaction.date < datetime(year + 1, 1, 1))
-        .group_by(extract("month", Transaction.date), Transaction.type)
+        .group_by(extract("month", Transaction.date), bucket)
         .order_by(extract("month", Transaction.date))
     )
     result = await db.execute(stmt)
     rows = result.all()
 
-    month_data: dict[int, dict] = {m: {"income": 0.0, "expense": 0.0} for m in range(1, 13)}
+    month_data: dict[int, dict] = {
+        m: {"income": 0.0, "expense": 0.0, "invested": 0.0} for m in range(1, 13)
+    }
     for row in rows:
         m = int(row.month)
-        if row.type == TransactionType.income:
+        if row.bucket == "income":
             month_data[m]["income"] += float(row.total or 0)
         else:
-            month_data[m]["expense"] += abs(float(row.total or 0))
+            month_data[m][row.bucket] += abs(float(row.total or 0))
 
     total_income = sum(v["income"] for v in month_data.values())
     total_expense = sum(v["expense"] for v in month_data.values())
-    net = total_income - total_expense
-    savings_rate = round(net / total_income, 4) if total_income > 0 else None
+    total_invested = sum(v["invested"] for v in month_data.values())
+    net = total_income - total_expense - total_invested
+    savings_rate = round((total_income - total_expense) / total_income, 4) if total_income > 0 else None
 
     return YearlySummary(
         year=year,
         total_income=total_income,
         total_expense=total_expense,
+        total_invested=total_invested,
         net=net,
         savings_rate=savings_rate,
         months=[
-            MonthlyEntry(month=m, income=month_data[m]["income"], expense=month_data[m]["expense"])
+            MonthlyEntry(month=m, income=month_data[m]["income"],
+                         expense=month_data[m]["expense"], invested=month_data[m]["invested"])
             for m in range(1, 13)
         ],
     )
@@ -283,6 +308,7 @@ async def day_of_week_stats(
     month: int,
     db: AsyncSession = Depends(get_db),
 ):
+    excluded = await excluded_category_names(db)
     stmt = (
         select(
             extract("dow", Transaction.date).label("dow"),
@@ -291,6 +317,7 @@ async def day_of_week_stats(
         )
         .where(_month_filter(year, month))
         .where(Transaction.type == TransactionType.expense)
+        .where(not_excluded(excluded))
         .group_by(extract("dow", Transaction.date))
         .order_by(extract("dow", Transaction.date))
     )
@@ -307,9 +334,11 @@ async def uncategorized_stats(
     month: int,
     db: AsyncSession = Depends(get_db),
 ):
+    excluded = await excluded_category_names(db)
     base_filter = [
         _month_filter(year, month),
         Transaction.type == TransactionType.expense,
+        not_excluded(excluded),
     ]
     total_stmt = select(func.count(Transaction.id)).where(*base_filter)
     uncat_stmt = select(func.count(Transaction.id)).where(
